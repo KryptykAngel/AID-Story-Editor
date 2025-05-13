@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Story Editor</title>
+  <!-- <KryptykAngel> -->
+  <!-- <Version 1.0 > -->
+  <link rel="manifest" href="manifest.json" />
+  <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+    <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      height: calc(var(--vh, 1vh) * 100);
+      overflow: hidden;
+    }
+    #header {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #333;
+      background-color: #121212;
+      z-index: 10; /* Ensure header is above sidebars if they ever overlap in weird ways */
+    }
+    #header button {
+      background-color: #333;
+      color: #f0f0f0;
+      border: none;
+      padding: 0.5rem 1rem;
+      margin-right: 0.5rem;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    #header button#collectionToggleBtn {
+        color: #f0f0f0;
+    }
+
+    #contentWrap {
+      flex: 1;
+      display: flex;
+      position: relative; /* For absolute positioning of sidebars on mobile */
+      overflow-x: hidden; /* IMPORTANT: Changed from auto to hidden to prevent scroll with overlay */
+    }
+
+    /* Left Sidebar - Base Styles */
+    #sidebar {
+      width: 50%;
+      max-width: 500px;
+      flex-shrink: 0;
+      background-color: #1e1e1e;
+      /* border-right is applied conditionally by media query or if collection sidebar is not absolute */
+      padding: 0;
+      display: none; /* Initially hidden */
+      flex-direction: column;
+      position: relative; /* Default for desktop layout */
+      order: 1;
+      border-right: 1px solid #333; /* Default for desktop */
+    }
+
+    /* Right Sidebar (Collection) - Base Styles */
+    #collectionSidebar {
+        width: 50%;
+        max-width: 500px;
+        flex-shrink: 0;
+        background-color: #1e1e1e;
+        /* border-left is applied conditionally */
+        padding: 0;
+        display: none; /* Initially hidden */
+        flex-direction: column;
+        position: relative; /* Default for desktop layout */
+        order: 3;
+        border-left: 1px solid #333; /* Default for desktop */
+    }
+
+    #sidebarHeader, #collectionSidebarHeader { /* Combined common style */
+      background-color: #1e1e1e;
+      z-index: 5; /* Above card list within sidebar */
+      padding: 1rem 1rem 0.5rem 1rem;
+      border-bottom: 1px solid #333;
+    }
+    #sidebarStats, #collectionSidebarStats { /* Combined common style */
+      margin-bottom: 0.5rem;
+    }
+    #cardCount, #collectionCardCount { /* Combined common style */
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    #cardFilter, #cardSort, #collectionCardFilter, #collectionCardSort { /* Combined common style */
+      width: 100%; /* Take full width of parent */
+      box-sizing: border-box; /* Include padding and border in the element's total width and height */
+      margin-bottom: 0.5rem;
+      padding: 0.3rem;
+      background: #1e1e1e;
+      color: #f0f0f0;
+      border: 1px solid #333;
+      border-radius: 3px;
+    }
+    .cardListHeader {
+      display: grid;
+      grid-template-columns: 1fr 60px 40px;
+      font-size: var(--sidebar-font-size, 14px);
+      font-weight: bold;
+      padding: 0.25rem 0.5rem;
+      border-top: 1px solid #333;
+      border-bottom: 1px solid #333;
+      text-align: left;
+    }
+    .colTitle {
+      /* flex: 1; No longer needed due to grid */
+      padding-right: 0.5rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .colType {
+      width: 60px;
+      text-align: left;
+      font-size: var(--type-font-size, 14px);
+      display: inline-block; /* Keep for consistency if used elsewhere */
+    }
+    .colChars {
+      width: 40px;
+      text-align: right; /* Usually char counts are right aligned */
+      font-size: var(--char-font-size, 14px);
+      display: inline-block;
+    }
+    #cardList, #collectionCardList {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    .cardItem {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      border-bottom: 1px solid #333;
+      font-size: var(--sidebar-font-size, 14px);
+    }
+    .cardRow {
+      display: grid;
+      grid-template-columns: 1fr 60px 40px;
+      gap: 0.5rem;
+      cursor: pointer;
+      align-items: center;
+      flex-grow: 1;
+    }
+    .cardTitle {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .cardTitle.active-card {
+        font-weight: bold;
+    }
+    .cardTitle.active-card::before {
+        content: "* ";
+    }
+    .cardType {
+      font-size: var(--type-font-size, 14px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+    .cardLength {
+      font-size: var(--char-font-size, 14px);
+      text-align: left; /* If you prefer left for chars */
+    }
+    #batchActions, #collectionBatchActions {
+      background-color: #1e1e1e;
+      padding: 0.5rem;
+      border-top: 1px solid #333;
+      text-align: center;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    #batchActions button, #collectionBatchActions button {
+      background-color: #333;
+      color: #f0f0f0;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    /* Main Content Area - Base Styles */
+    #main {
+      flex-grow: 1;
+      flex-shrink: 1;
+      flex-basis: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      overflow-y: auto;
+      order: 2;
+      min-width: 200px; /* Default min-width for desktop */
+      /* z-index: 0; /* Ensure it's behind absolutely positioned sidebars if they ever overlap */
+    }
+    #editor input,
+    #editor select,
+    #editor textarea {
+      width: 100%; /* Use 100% for better responsiveness with box-sizing */
+      box-sizing: border-box; /* Include padding and border in the element's total width */
+      margin-bottom: 0.5rem;
+      background: #1e1e1e;
+      color: #f0f0f0;
+      border: 1px solid #333;
+      padding: 0.5rem;
+      font-size: var(--editor-font-size, 14px);
+      border-radius: 3px;
+    }
+    #editCustomType {
+      display: none;
+    }
+    #charCount { /* This is the editor's character count */
+      text-align: right;
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+    }
+    .inlineCheckbox {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      margin-bottom: 0.5rem;
+    }
+    #valueEditor, #editDescription {
+      min-height: 200px;
+      height: calc(var(--vh, 1vh) * 30);
+      resize: vertical;
+    }
+    #editor .button-group {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    #editor .button-group button {
+        flex-grow: 0; /* Make buttons share space */
+        background-color: #333; /* Default editor button color */
+        color: white;
+         /* padding and border-radius will be inherited from #header button if not overridden */
+    }
+    #editor #cancelChangesBtn { /* Specific styling for cancel button */
+        width:100%;
+        background-color: #dc3545; /* Red for cancel/delete */
+        color:white;
+        margin-top: 0.5rem; /* Ensure it has some space */
+    }
+    #editor button[onclick="addCurrentCardToCollection()"] { /* Style for add to collection button in editor */
+        background-color: #28a745; /* Green for add/confirm */
+        color: white;
+    }
+
+
+    /* Collection Sidebar specific styles, if any, beyond what's shared */
+    .collection-io-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .collection-io-buttons button {
+        flex:1;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 0.5rem; /* Match other sidebar buttons */
+        border-radius: 4px;
+        font-size: 0.7rem;
+        cursor: pointer;
+    }
+    .collection-io-buttons button:hover {
+        background-color: #0056b3;
+    }
+
+    /* Workspace (Left Sidebar) I/O Buttons */
+    .workspace-io-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem; 
+        margin-bottom: 0.5rem;
+    }
+    .workspace-io-buttons button {
+        flex: 1; 
+        background-color: #007bff; 
+        color: white;
+        border: none; 
+        padding: 0.5rem; 
+        border-radius: 4px; 
+        font-size: 0.7rem; 
+        cursor: pointer;
+    }
+    .workspace-io-buttons button:hover {
+        background-color: #0056b3; 
+    }
+
+
+    /* Settings Overlay */
+    #settingsOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: calc(var(--vh, 1vh) * 100);
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    #settingsPanel {
+      background: #2a2a2a;
+      padding: 2rem;
+      border: 1px solid #444;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 450px;
+    }
+    #settingsPanel h2 {
+        margin-top: 0;
+        color: #00acc1;
+    }
+    #settingsPanel label {
+      display: block;
+      margin: 0.75rem 0 0.25rem;
+      font-size: 0.95rem;
+    }
+    #settingsPanel input[type="number"], #settingsPanel input[type="checkbox"] {
+        margin-right: 0.5rem; /* For spacing if label text is short */
+    }
+    #settingsPanel button {
+        margin-top: 1.5rem;
+        padding: 0.6rem 1.2rem;
+        background-color: #007bff; /* Consistent button style */
+        color: white;
+        border:none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    #settingsPanel button + button {
+        margin-left: 0.5rem;
+        background-color: #555;
+    }
+
+    label {
+      display: block;
+      margin: 0.3rem 0 0.3rem;
+    }
+
+    /* === Mobile Specific Overrides for Sidebar Behavior === */
+    @media (max-width: 768px) {
+        /* #contentWrap remains display: flex */
+
+        /* Default behavior for sidebars on mobile: in flow, take their defined width */
+        #sidebar, #collectionSidebar {
+            position: relative; /* Ensures they are in flow, not absolute by default */
+            /* width: 50%; /* From base styles */
+            /* max-width: 500px; /* From base styles */
+            height: 100%;    /* Span the full height of contentWrap */
+            overflow-y: auto;
+            z-index: 5;      /* Above main content if there's any overlap issue, but below header */
+            box-shadow: none;/* No shadow if in flow */
+            flex-shrink: 0;  /* Prevent shrinking beyond their defined width */
+        }
+
+        #sidebar {
+            /* left: auto; /* Reset from potential absolute positioning */ /* Not needed for relative */
+            border-right: 1px solid #333; /* Default border for when it's visible and in flow */
+        }
+        #sidebar:not([style*="display: flex"]) { /* If display is 'none' */
+             border-right: none;
+        }
+
+
+        #collectionSidebar {
+            /* right: auto; /* Reset from potential absolute positioning */ /* Not needed for relative */
+            border-left: 1px solid #333; /* Default border for when it's visible and in flow */
+        }
+        #collectionSidebar:not([style*="display: flex"]) { /* If display is 'none' */
+             border-left: none;
+        }
+
+        #main {
+            flex-grow: 1;     /* Allows main to take remaining space */
+            min-width: 50px;  /* Prevent main from disappearing completely if sidebars are wide, adjust as needed */
+            width: auto;      /* Let flexbox determine width based on available space */
+            z-index: 1;       /* Default z-index */
+            overflow-y: auto; /* Ensure main content can scroll if it overflows */
+        }
+
+        /* Case: ONLY LEFT sidebar is open (shrink behavior) */
+        body.mobile-left-sidebar-open #main {
+            /* Main content shrinks, flexbox handles this by default as #sidebar is in flow */
+        }
+        body.mobile-left-sidebar-open #sidebar {
+            /* Styles for left sidebar when it's the only one open */
+        }
+
+        /* Case: ONLY RIGHT sidebar is open (shrink behavior) */
+        body.mobile-right-sidebar-open #main {
+            /* Main content shrinks, flexbox handles this by default as #collectionSidebar is in flow */
+        }
+        body.mobile-right-sidebar-open #collectionSidebar {
+            /* Styles for right sidebar when it's the only one open */
+        }
+
+        /* Case: BOTH sidebars are open - they become absolute and overlay main */
+        body.mobile-both-sidebars-open #sidebar,
+        body.mobile-both-sidebars-open #collectionSidebar {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            /* height: 100%; /* Already set from general mobile sidebar style */
+            z-index: 15; /* Higher z-index to overlay main */
+            box-shadow: 0px 0px 15px rgba(0,0,0,0.5);
+            /* width: 50%; /* Retain their width */
+        }
+
+        body.mobile-both-sidebars-open #sidebar {
+            left: 0;
+            border-right: none; /* Optional: hide border when overlaying if next to other sidebar */
+        }
+
+        body.mobile-both-sidebars-open #collectionSidebar {
+            right: 0;
+            border-left: none; /* Optional: hide border when overlaying */
+        }
+
+        body.mobile-both-sidebars-open #main {
+            position: absolute; /* Needed for z-index stacking and to fill space under overlays */
+            width: 100%;      /* Occupy full width behind */
+            height: 100%;     /* Occupy full height behind */
+            left: 0;
+            top: 0;
+            z-index: 1;       /* Ensure it's below the absolute sidebars */
+            min-width: 0;     /* Allow it to be fully covered */
+        }
+    }
+  </style>  
+</head>
+<body>
+  <div id="header">
+    <button id="cardListToggle">☰</button>
+    <h1 style="flex:1; font-size:1.2rem;">Story Card Editor</h1>
+    <button id="settingsBtn">⚙️</button>
+    <button id="collectionToggleBtn">★</button>
+    <input type="file" id="fileInput" accept="application/json" style="display:none" />
+    <input type="file" id="collectionFileInput" accept="application/json" style="display:none" /> 
+  </div>
+
+  <div id="contentWrap">
+    <div id="sidebar"> 
+      <div id="sidebarHeader">
+            <div id="sidebarStats">
+                <div id="cardCount">Total Cards: 0</div>
+                <div class="workspace-io-buttons">
+                    <button id="importBtn">Import Cards</button> 
+                    <button id="exportBtn">Export Cards</button> 
+                </div>
+                <input id="cardFilter" placeholder="Filter by title/type/value..." />
+                <select id="cardSort">
+                    <option value="default" selected>Sort: Default</option>
+                    <option value="title">Sort: Title</option>
+                    <option value="type">Sort: Type</option>
+                    <option value="length">Sort: Character Count</option>
+                </select>
+                <div style="margin: 0.5rem 0;">
+                    <label style="font-size: 0.85rem;">
+                        <input type="checkbox" id="selectAllBox" />
+                        Select All
+                    </label>
+                </div>
+            </div>
+            <div class="cardListHeader">
+                <span class="colTitle">Name</span>
+                <span class="colType" id="typeHeader">Type</span>
+                <span class="colChars" id="charsHeader">Chars</span>
+            </div>
+        </div>
+        <div id="cardList"></div>
+        <div id="batchActions">
+            <button onclick="deleteSelected()">Delete</button>
+            <button onclick="assignTypeSelected()">Set Type</button>
+            <button onclick="addSelectedWorkspaceCardsToCollection()">Add to Collection</button>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="editor">
+            <input id="editTitle" placeholder="Title" />
+            <input id="editKeys" placeholder="Keys / Triggers" />
+            <select id="editType">
+                <option value="character">character</option>
+                <option value="class">class</option>
+                <option value="race">race</option>
+                <option value="location">location</option>
+                <option value="faction">faction</option>
+                <option value="custom">custom</option>
+                <option value="equipment">equipment</option>
+                <option value="creature">creature</option>
+                <option value="container">container</option>
+            </select>
+            <input id="editCustomType" placeholder="Enter custom type..." />
+            <div class="inlineCheckbox">
+                Use for Character Creation
+                <input type="checkbox" id="editUseForCC" />
+            </div>
+            <textarea id="valueEditor" placeholder="Edit card value here..."></textarea>
+            <div id="charCount">Character Count: 0</div>
+            <textarea id="editDescription" placeholder="Description / Notes"></textarea>
+            <div class="button-group"> <button onclick="saveCard()">Save Card</button>
+                <button onclick="saveAsNewCard()">Save As New Card</button>
+                <button onclick="deleteCurrentCard()">Delete Card</button>
+            </div>
+            <div id="unsavedChangesMessage" style="color: red; margin-top: 0.5rem; height: 1.2em;"></div>
+            <button id="cancelChangesBtn" onclick="cancelChanges()" style="margin-top: 0.5rem; display: none; width:100%; background-color: #dc3545; color:white;">Cancel Changes</button>
+        </div>
+    </div>
+
+    <div id="collectionSidebar"> 
+      <div id="collectionSidebarHeader">
+            <div id="collectionSidebarStats">
+                <div id="collectionCardCount">Total Collection Cards: 0</div>
+                <div class="collection-io-buttons"> 
+                    <button onclick="importCollectionJSON()">Import Collection</button>
+                    <button onclick="exportCollectionJSON()">Export Collection</button>
+                </div>
+                <input id="collectionCardFilter" placeholder="Filter collection..." />
+                <select id="collectionCardSort">
+                    <option value="default" selected>Sort: Default</option>
+                    <option value="title">Sort: Title</option>
+                    <option value="type">Sort: Type</option>
+                    <option value="length">Sort: Character Count</option>
+                </select>
+                <div style="margin: 0.5rem 0;">
+                    <label style="font-size: 0.85rem;">
+                        <input type="checkbox" id="collectionSelectAllBox" />
+                        Select All
+                    </label>
+                </div>
+            </div>
+            <div class="cardListHeader">
+                <span class="colTitle">Name</span>
+                <span class="colType" id="collectionTypeHeader">Type</span>
+                <span class="colChars" id="collectionCharsHeader">Chars</span>
+            </div>
+        </div>
+        <div id="collectionCardList"></div>
+        <div id="collectionBatchActions">
+            <button onclick="deleteSelectedFromCollection()">Delete</button>
+            <button onclick="addSelectedToWorkspace()">Add to Workspace</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="settingsOverlay">
+    <div id="settingsPanel">
+      <h2>Settings</h2>
+      <label for="sidebarFont">Sidebar Font Size (px)</label>
+      <input type="number" id="sidebarFont" min="10" max="24" value="14" />
+      <label for="editorFont">Editor Font Size (px)</label>
+      <input type="number" id="editorFont" min="10" max="24" value="14" />
+      <label for="charFont">Sidebar Character Count Font Size (px)</label>
+      <input type="number" id="charFont" min="10" max="24" value="14" />
+      <label for="typeFont">Sidebar Type Column Font Size (px)</label>
+      <input type="number" id="typeFont" min="10" max="24" value="14" />
+      <label><input type="checkbox" id="settingShowChars" checked /> Show Character Count Column in Sidebars</label>
+      <label><input type="checkbox" id="settingShowType" checked /> Show Type Column in Sidebars</label>
+      <label><input type="checkbox" id="settingTapToClose" /> Tapping outside active sidebar hides it</label>
+      <button onclick="saveSettings()">Save & Close</button>
+      <button onclick="toggleSettings(false)" style="margin-top: 0.5rem;">Close Without Saving</button>
+    </div>
+  </div>
+
+  <script>
+    // --- Polyfills and Setup ---
+    function setVisualViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    window.addEventListener('resize', setVisualViewportHeight);
+    window.addEventListener('orientationchange', setVisualViewportHeight);
+    setVisualViewportHeight();
+
+    // --- Global State & DOM References (Workspace) ---
+    let cards = []; // Workspace cards
+    let currentCardIndex = null; // Index in 'cards' array for the card in editor if source is 'workspace'
+    let currentFileName = "story_cards.json";
+    const selectedCardIndexes = new Set(); // For workspace cards (using originalArrayIndexInCards)
+    let originalCardData = null; // For "Cancel Changes" in editor (stores pristine version of loaded card)
+    let unsavedChangesMap = new Map(); // For workspace cards (key: index in 'cards' array)
+
+    // NEW: Global state for editor source
+    let editorCardSource = null; // 'workspace', 'collection', or null (if new card not yet saved)
+    let editorCardDbId = null;   // IndexedDB ID if source is 'collection'
+    let editorWorkspaceIndex = null; // 'cards' array index if source is 'workspace' (this is `currentCardIndex`)
+
+
+    const sidebar = document.getElementById('sidebar');
+    const cardListDiv = document.getElementById('cardList');
+    const cardFilter = document.getElementById('cardFilter');
+    const cardSort = document.getElementById('cardSort');
+    const cardCount = document.getElementById('cardCount');
+    const selectAllBox = document.getElementById('selectAllBox');
+    const typeHeader = document.getElementById('typeHeader'); // Workspace type header
+    const charsHeader = document.getElementById('charsHeader'); // Workspace chars header
+    const main = document.getElementById('main'); // ADDED for mobile layout
+
+    // Editor DOM Elements
+    const valueEditor = document.getElementById('valueEditor');
+    const editDescription = document.getElementById('editDescription');
+    const editorCharCount = document.getElementById('charCount'); // Renamed for clarity
+    const editTitle = document.getElementById('editTitle');
+    const editKeys = document.getElementById('editKeys');
+    const editType = document.getElementById('editType');
+    const editCustomType = document.getElementById('editCustomType');
+    const editUseForCC = document.getElementById('editUseForCC');
+    const unsavedChangesMessage = document.getElementById('unsavedChangesMessage');
+    const cancelChangesBtn = document.getElementById('cancelChangesBtn');
+
+    // File I/O
+    const fileInput = document.getElementById('fileInput');
+    const collectionFileInput = document.getElementById('collectionFileInput'); // Defined earlier
+
+    // --- Global State & DOM References (Collection) ---
+    let collectionCards = []; // Holds collection cards fetched from DB for display
+    const selectedCollectionCardDBIds = new Set(); // Holds IndexedDB 'id' of selected collection cards
+
+    const collectionSidebar = document.getElementById('collectionSidebar');
+    const collectionCardListDiv = document.getElementById('collectionCardList');
+    const collectionCardFilter = document.getElementById('collectionCardFilter');
+    const collectionCardSort = document.getElementById('collectionCardSort');
+    const collectionCardCountEl = document.getElementById('collectionCardCount'); // Renamed for clarity
+    const collectionSelectAllBox = document.getElementById('collectionSelectAllBox');
+    const collectionToggleBtn = document.getElementById('collectionToggleBtn');
+    const collectionTypeHeader = document.getElementById('collectionTypeHeader');
+    const collectionCharsHeader = document.getElementById('collectionCharsHeader');
+
+    // --- Dexie.js Database Setup ---
+    const db = new Dexie("StoryCardCollectionDB");
+    db.version(1).stores({
+        collection: '++id, title, type, originalIndex'
+    });
+
+    // --- Utility Functions ---
+    function getEditorData() {
+      return {
+        title: editTitle.value.trim(),
+        keys: editKeys.value.trim(),
+        description: editDescription.value.trim(),
+        useForCharacterCreation: editUseForCC.checked,
+        value: valueEditor.value.trim(),
+        type: (editType.value === 'custom') ? (editCustomType.value.trim() || 'custom') : editType.value,
+      };
+    }
+
+    // --- Mobile Layout Updater ---
+    function updateMobileLayout() {
+        const body = document.body;
+        const isDesktop = window.innerWidth > 768;
+
+        // Always remove mobile classes first
+        body.classList.remove('mobile-left-sidebar-open', 'mobile-right-sidebar-open', 'mobile-both-sidebars-open');
+
+        // Reset inline styles that might have been applied for specific mobile states
+        // This allows CSS classes to take precedence or revert to stylesheet defaults.
+        sidebar.style.position = '';
+        sidebar.style.left = '';
+        sidebar.style.zIndex = '';
+        sidebar.style.boxShadow = '';
+
+        collectionSidebar.style.position = '';
+        collectionSidebar.style.right = '';
+        collectionSidebar.style.zIndex = '';
+        collectionSidebar.style.boxShadow = '';
+
+        main.style.position = '';
+        main.style.width = '';
+        main.style.left = '';
+        main.style.top = '';
+        main.style.height = '';
+        main.style.zIndex = '';
+        main.style.minWidth = ''; // Reset minWidth that might be set for 'both open' case
+
+
+        if (isDesktop) {
+            // On desktop, ensure no mobile layout classes are present.
+            return;
+        }
+
+        // Mobile specific logic
+        const isLeftOpen = sidebar.style.display === 'flex';
+        const isRightOpen = collectionSidebar.style.display === 'flex';
+
+        if (isLeftOpen && isRightOpen) {
+            body.classList.add('mobile-both-sidebars-open');
+        } else if (isLeftOpen) {
+            body.classList.add('mobile-left-sidebar-open');
+        } else if (isRightOpen) {
+            body.classList.add('mobile-right-sidebar-open');
+        }
+        // If neither is open, no class is added, main content takes full width by default.
+    }
+
+
+    // --- Workspace Card Functions ---
+    document.getElementById('importBtn').onclick = () => fileInput.click();
+    document.getElementById('exportBtn').onclick = exportJSON; // Workspace export
+    fileInput.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const importedData = JSON.parse(ev.target.result);
+                if (!Array.isArray(importedData)) {
+                    alert("Invalid JSON file: Data is not an array of cards.");
+                    return;
+                }
+                const existingCardsCount = cards.length;
+                const newCards = importedData.map((card, index) => ({
+                    ...card,
+                    originalIndex: existingCardsCount + index // Maintain unique originalIndex for workspace
+                }));
+                cards = cards.concat(newCards);
+                currentFileName = file.name;
+                if (editorCardSource === 'workspace' && currentCardIndex !==null && currentCardIndex >= existingCardsCount) {
+                    // If the currently edited card was one of the newly imported ones, its index might have shifted
+                }
+                clearEditorAndState(); 
+                renderSidebar();
+                alert(`Cards from "${file.name}" appended to workspace. Total workspace cards: ${cards.length}.`);
+            } catch (error) {
+                console.error("Error importing cards:", error);
+                alert("Invalid JSON file or error during import.");
+            } finally {
+                fileInput.value = ''; 
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    function handleEditorChange() {
+        let currentCardIdentifier = null;
+        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
+            currentCardIdentifier = editorWorkspaceIndex;
+        } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
+            currentCardIdentifier = editorCardDbId; 
+        }
+
+        if (editorCardSource) { 
+            unsavedChangesMessage.textContent = "Unsaved Changes";
+            cancelChangesBtn.style.display = 'block';
+            if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
+                unsavedChangesMap.set(editorWorkspaceIndex, getEditorData());
+                renderSidebar(); 
+            } else if (editorCardSource === 'collection') {
+                renderCollectionSidebar(); 
+            }
+        } else { 
+            const editorData = getEditorData();
+            if (editorData.title || editorData.value || editorData.keys || editorData.description) {
+                 unsavedChangesMessage.textContent = "Unsaved Changes (New Card)";
+                 cancelChangesBtn.style.display = 'block';
+            } else { 
+                 unsavedChangesMessage.textContent = "";
+                 cancelChangesBtn.style.display = 'none';
+            }
+        }
+    }
+
+    editTitle.addEventListener('input', handleEditorChange);
+    editKeys.addEventListener('input', handleEditorChange);
+    editDescription.addEventListener('input', handleEditorChange);
+    valueEditor.addEventListener('input', () => {
+        editorCharCount.textContent = `Character Count: ${valueEditor.value.length}`;
+        handleEditorChange();
+    });
+    editUseForCC.addEventListener('change', handleEditorChange);
+    editType.addEventListener('change', () => {
+        editCustomType.style.display = (editType.value === 'custom') ? 'block' : 'none';
+        if (editType.value !== 'custom') editCustomType.value = '';
+        handleEditorChange();
+    });
+    editCustomType.addEventListener('input', handleEditorChange);
+
+    function exportJSON() { // Exports WORKSPACE cards
+        if (unsavedChangesMap.size > 0) {
+            if (confirm("Workspace has unsaved changes. Exporting will include these changes in the exported file. Continue?")) {
+                unsavedChangesMap.forEach((changes, index) => {
+                    if (cards[index]) Object.assign(cards[index], changes);
+                });
+                unsavedChangesMap.clear(); 
+                if (sidebar.style.display === 'flex') renderSidebar(); 
+            } else {
+                alert("Export cancelled.");
+                return;
+            }
+        }
+        const cardsToExport = cards.map(card => {
+            const { originalIndex, id, ...rest } = card;
+            return rest;
+        });
+        const sortBy = cardSort.value;
+        const sortedCardsToExport = [...cardsToExport];
+        if (sortBy === 'title') sortedCardsToExport.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        else if (sortBy === 'type') sortedCardsToExport.sort((a, b) => (a.type || "").localeCompare(b.type || ""));
+        else if (sortBy === 'length') sortedCardsToExport.sort((a, b) => (b.value || "").length - (a.value || "").length);
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sortedCardsToExport, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", currentFileName || 'story_cards.json');
+        dlAnchor.click();
+        alert("Workspace cards exported successfully.");
+    }
+
+    function renderSidebar() { 
+        const filterText = cardFilter.value.toLowerCase();
+        const sortBy = cardSort.value;
+        let visibleCardsSource = cards.map((card, index) => ({ ...card, originalArrayIndexInCards: index }));
+
+        if (filterText) {
+            visibleCardsSource = visibleCardsSource.filter(cardData => {
+                const card = cards[cardData.originalArrayIndexInCards];
+                const title = card.title?.toLowerCase() || "";
+                const type = card.type?.toLowerCase() || "";
+                const value = card.value?.toLowerCase() || "";
+                return title.includes(filterText) || type.includes(filterText) || value.includes(filterText);
+            });
+        }
+
+        if (sortBy === 'title') visibleCardsSource.sort((a, b) => (cards[a.originalArrayIndexInCards].title || "").localeCompare(cards[b.originalArrayIndexInCards].title || ""));
+        else if (sortBy === 'type') visibleCardsSource.sort((a, b) => (cards[a.originalArrayIndexInCards].type || "").localeCompare(cards[b.originalArrayIndexInCards].type || ""));
+        else if (sortBy === 'length') visibleCardsSource.sort((a, b) => (cards[b.originalArrayIndexInCards].value || "").length - (cards[a.originalArrayIndexInCards].value || "").length);
+        else if (sortBy === 'default') {
+             visibleCardsSource.sort((a,b) => (cards[a.originalArrayIndexInCards].originalIndex || 0) - (cards[b.originalArrayIndexInCards].originalIndex || 0));
+        }
+
+
+        cardListDiv.innerHTML = '';
+        visibleCardsSource.forEach(cardData => {
+            const originalCardIndex = cardData.originalArrayIndexInCards;
+            const card = cards[originalCardIndex];
+
+            const div = document.createElement('div');
+            div.className = 'cardItem';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.index = originalCardIndex;
+            checkbox.checked = selectedCardIndexes.has(originalCardIndex);
+            checkbox.onchange = () => {
+                if (checkbox.checked) selectedCardIndexes.add(originalCardIndex);
+                else selectedCardIndexes.delete(originalCardIndex);
+            };
+            const row = document.createElement('div');
+            row.className = 'cardRow';
+            row.onclick = () => editCard(originalCardIndex);
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'cardTitle';
+            titleSpan.textContent = card.title || "Untitled";
+            if (unsavedChangesMap.has(originalCardIndex)) titleSpan.style.color = 'red';
+            if (editorCardSource === 'workspace' && editorWorkspaceIndex === originalCardIndex) {
+                titleSpan.classList.add('active-card');
+            }
+
+            row.appendChild(titleSpan);
+            if (document.getElementById('settingShowType').checked) {
+                const typeSpan = document.createElement('span');
+                typeSpan.className = 'cardType';
+                typeSpan.textContent = card.type || "";
+                row.appendChild(typeSpan);
+            }
+            if (document.getElementById('settingShowChars').checked) {
+                const charsSpan = document.createElement('span');
+                charsSpan.className = 'cardLength';
+                charsSpan.textContent = (card.value || "").length;
+                row.appendChild(charsSpan);
+            }
+            div.appendChild(checkbox);
+            div.appendChild(row);
+            cardListDiv.appendChild(div);
+        });
+        cardCount.textContent = `Total Cards: ${cards.length} (Showing: ${visibleCardsSource.length})`;
+        typeHeader.style.display = document.getElementById('settingShowType').checked ? 'inline-block' : 'none';
+        charsHeader.style.display = document.getElementById('settingShowChars').checked ? 'inline-block' : 'none';
+    }
+
+    selectAllBox.addEventListener('change', (e) => {
+        const checkboxes = document.querySelectorAll('#cardList input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = e.target.checked;
+            const idx = parseInt(cb.dataset.index);
+            if (e.target.checked) selectedCardIndexes.add(idx);
+            else selectedCardIndexes.delete(idx);
+        });
+    });
+
+    function editCard(index) { 
+        editorCardSource = 'workspace';
+        editorWorkspaceIndex = index; 
+        editorCardDbId = null;       
+
+        currentCardIndex = index; 
+
+        const cardToDisplayInEditor = { ...cards[index] }; 
+        originalCardData = { ...cards[index] };      
+
+        if (unsavedChangesMap.has(index)) {
+            const changes = unsavedChangesMap.get(index);
+            Object.assign(cardToDisplayInEditor, changes); 
+            unsavedChangesMessage.textContent = "Unsaved Changes";
+            cancelChangesBtn.style.display = 'block';
+        } else {
+            unsavedChangesMessage.textContent = "";
+            cancelChangesBtn.style.display = 'none';
+        }
+
+        editTitle.value = cardToDisplayInEditor.title || "";
+        editKeys.value = cardToDisplayInEditor.keys || "";
+        editDescription.value = cardToDisplayInEditor.description || "";
+        editUseForCC.checked = cardToDisplayInEditor.useForCharacterCreation || false;
+        valueEditor.value = cardToDisplayInEditor.value || "";
+        editorCharCount.textContent = `Character Count: ${(cardToDisplayInEditor.value || "").length}`;
+        const options = Array.from(editType.options).map(opt => opt.value);
+        if (options.includes(cardToDisplayInEditor.type)) {
+            editType.value = cardToDisplayInEditor.type;
+            editCustomType.style.display = 'none';
+            editCustomType.value = '';
+        } else {
+            editType.value = 'custom';
+            editCustomType.style.display = 'block';
+            editCustomType.value = cardToDisplayInEditor.type || "";
+        }
+        renderSidebar(); 
+        if (collectionSidebar.style.display === 'flex') renderCollectionSidebar(); 
+    }
+
+    document.getElementById('cardListToggle').onclick = () => {
+        const mainSidebarVisible = sidebar.style.display === 'flex';
+        if (mainSidebarVisible) {
+            sidebar.style.display = 'none';
+        } else {
+            sidebar.style.display = 'flex';
+            renderSidebar(); 
+        }
+        updateMobileLayout(); 
+    };
+
+    async function saveCard() {
+        const editorData = getEditorData();
+        if (!editorData.title && !editorData.value && !editorData.keys && !editorData.description) { 
+            alert("Cannot save an essentially empty card.");
+            return;
+        }
+
+        if (editorCardSource === 'workspace') {
+            if (editorWorkspaceIndex === null) { 
+                editorData.originalIndex = cards.length;
+                cards.push(editorData);
+                editorWorkspaceIndex = cards.length - 1; 
+                currentCardIndex = editorWorkspaceIndex; 
+                originalCardData = { ...editorData };     
+                unsavedChangesMap.delete(editorWorkspaceIndex); 
+                alert("New workspace card saved.");
+            } else { 
+                Object.assign(cards[editorWorkspaceIndex], editorData);
+                unsavedChangesMap.delete(editorWorkspaceIndex);
+                originalCardData = { ...cards[editorWorkspaceIndex] }; 
+                alert("Workspace card saved successfully.");
+            }
+            renderSidebar();
+        } else if (editorCardSource === 'collection') {
+            if (editorCardDbId === null) {
+                alert("Error: No collection card ID to save to. This shouldn't happen.");
+                return;
+            }
+            try {
+                const cardToUpdateInDB = { ...originalCardData, ...editorData, id: editorCardDbId };
+                await db.collection.put(cardToUpdateInDB);
+                originalCardData = { ...cardToUpdateInDB }; 
+                alert("Collection card saved successfully.");
+                await loadCollectionCards(); 
+            } catch (error) {
+                console.error("Error saving collection card:", error);
+                alert("Failed to save collection card.");
+                return;
+            }
+        } else { 
+            alert("Saving a new card. It will be saved to the workspace.");
+            editorCardSource = 'workspace'; 
+            editorWorkspaceIndex = null;    
+            await saveCard(); 
+            return; 
+        }
+
+        unsavedChangesMessage.textContent = "";
+        cancelChangesBtn.style.display = 'none';
+
+        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
+            editCard(editorWorkspaceIndex);
+        } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
+            await editCollectionCard(editorCardDbId);
+        }
+    }
+    window.saveCard = saveCard;
+
+    async function saveAsNewCard() {
+        const newCardDataFromEditor = getEditorData();
+        if (!newCardDataFromEditor.title && !newCardDataFromEditor.value && !newCardDataFromEditor.keys && !newCardDataFromEditor.description) {
+            alert("Cannot save an essentially empty card as new.");
+            return;
+        }
+        newCardDataFromEditor.originalIndex = cards.length;
+        cards.push(newCardDataFromEditor);
+        const newWorkspaceCardIndex = cards.length - 1;
+
+        editorCardSource = 'workspace';
+        editorWorkspaceIndex = newWorkspaceCardIndex;
+        currentCardIndex = newWorkspaceCardIndex; 
+        editorCardDbId = null; 
+
+        originalCardData = { ...cards[editorWorkspaceIndex] }; 
+        unsavedChangesMap.delete(editorWorkspaceIndex);       
+
+        unsavedChangesMessage.textContent = ""; 
+        cancelChangesBtn.style.display = 'none';
+
+        renderSidebar(); 
+        if (collectionSidebar.style.display === 'flex') renderCollectionSidebar(); 
+        editCard(editorWorkspaceIndex); 
+        alert("Card saved as new to workspace.");
+    }
+    window.saveAsNewCard = saveAsNewCard;
+
+
+    async function deleteCurrentCard() {
+        if (!editorCardSource) {
+            alert("No card loaded in the editor to delete.");
+            if (editTitle.value || editKeys.value || editDescription.value || valueEditor.value) {
+                if(confirm("The editor has unsaved content for a new card. Clear editor?")) {
+                    clearEditorAndState();
+                }
+            }
+            return;
+        }
+
+        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
+            if (confirm(`Delete "${cards[editorWorkspaceIndex].title || 'Untitled Card'}" from workspace?`)) {
+                cards.splice(editorWorkspaceIndex, 1);
+                unsavedChangesMap.delete(editorWorkspaceIndex);
+                const newUnsavedMap = new Map();
+                unsavedChangesMap.forEach((val, key) => { if (key > editorWorkspaceIndex) newUnsavedMap.set(key - 1, val); else if (key < editorWorkspaceIndex) newUnsavedMap.set(key, val);});
+                unsavedChangesMap = newUnsavedMap;
+
+                const newSelected = new Set();
+                selectedCardIndexes.forEach(idx => { if (idx > editorWorkspaceIndex) newSelected.add(idx - 1); else if (idx < editorWorkspaceIndex) newSelected.add(idx);});
+                selectedCardIndexes.clear(); newSelected.forEach(idx => selectedCardIndexes.add(idx));
+
+                clearEditorAndState(); 
+                renderSidebar();
+                alert("Workspace card deleted.");
+            }
+        } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
+            const cardTitleInEditor = originalCardData ? originalCardData.title : (editTitle.value || "Untitled Card");
+            if (confirm(`Delete "${cardTitleInEditor}" from collection (this is permanent)?`)) {
+                try {
+                    await db.collection.delete(editorCardDbId);
+                    clearEditorAndState();
+                    await loadCollectionCards();
+                    alert("Collection card deleted.");
+                } catch (error) {
+                    console.error("Error deleting from collection:", error);
+                    alert("Failed to delete card from collection.");
+                }
+            }
+        }
+    }
+    window.deleteCurrentCard = deleteCurrentCard;
+
+    function clearEditorAndState() { 
+        editTitle.value = '';
+        editKeys.value = '';
+        editDescription.value = '';
+        valueEditor.value = '';
+        editUseForCC.checked = false;
+        editType.value = 'character'; 
+        editCustomType.value = '';
+        editCustomType.style.display = 'none';
+        editorCharCount.textContent = "Character Count: 0";
+
+        unsavedChangesMessage.textContent = "";
+        cancelChangesBtn.style.display = 'none';
+
+        editorCardSource = null;
+        editorCardDbId = null;
+        editorWorkspaceIndex = null; 
+        currentCardIndex = null;     
+        originalCardData = null;
+
+        if (sidebar.style.display === 'flex') renderSidebar();
+        if (collectionSidebar.style.display === 'flex') renderCollectionSidebar();
+    }
+
+    function cancelChanges() {
+        if (!editorCardSource || !originalCardData) {
+            if (editTitle.value || editKeys.value || editDescription.value || valueEditor.value) {
+                 if(confirm("Clear unsaved content for this new card?")) {
+                    clearEditorAndState();
+                 }
+            } else {
+                clearEditorAndState(); 
+            }
+            return;
+        }
+
+        editTitle.value = originalCardData.title || "";
+        editKeys.value = originalCardData.keys || "";
+        editDescription.value = originalCardData.description || "";
+        editUseForCC.checked = originalCardData.useForCharacterCreation || false;
+        valueEditor.value = originalCardData.value || "";
+        editorCharCount.textContent = `Character Count: ${(originalCardData.value || "").length}`;
+        const options = Array.from(editType.options).map(opt => opt.value);
+        if (options.includes(originalCardData.type)) {
+            editType.value = originalCardData.type;
+            editCustomType.style.display = 'none';
+            editCustomType.value = '';
+        } else {
+            editType.value = 'custom';
+            editCustomType.style.display = 'block';
+            editCustomType.value = originalCardData.type || "";
+        }
+
+        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
+            unsavedChangesMap.delete(editorWorkspaceIndex);
+            renderSidebar(); 
+        } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
+            renderCollectionSidebar(); 
+        }
+
+        unsavedChangesMessage.textContent = "";
+        cancelChangesBtn.style.display = 'none';
+        alert("Changes cancelled.");
+        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) editCard(editorWorkspaceIndex);
+        else if (editorCardSource === 'collection' && editorCardDbId !== null) editCollectionCard(editorCardDbId);
+    }
+    window.cancelChanges = cancelChanges;
+
+
+    function deleteSelected() { 
+        if (selectedCardIndexes.size === 0) {
+            alert("No cards selected in workspace.");
+            return;
+        }
+        if (confirm(`Delete ${selectedCardIndexes.size} selected card(s) from workspace?`)) {
+            const sortedIndexesToDelete = Array.from(selectedCardIndexes).sort((a, b) => b - a);
+            let editorWasAffected = false;
+
+            sortedIndexesToDelete.forEach(index => {
+                if (editorCardSource === 'workspace' && index === editorWorkspaceIndex) {
+                    editorWasAffected = true; 
+                }
+                cards.splice(index, 1);
+                unsavedChangesMap.delete(index);
+            });
+            if (editorWasAffected) {
+                clearEditorAndState();
+            } else if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
+                let shifts = 0;
+                sortedIndexesToDelete.forEach(deletedIdx => {
+                    if (editorWorkspaceIndex > deletedIdx) shifts++;
+                });
+                editorWorkspaceIndex -= shifts;
+                currentCardIndex = editorWorkspaceIndex; 
+            }
+            selectedCardIndexes.clear();
+            selectAllBox.checked = false;
+            renderSidebar();
+            alert(`${sortedIndexesToDelete.length} card(s) deleted from workspace.`);
+        }
+    }
+    window.deleteSelected = deleteSelected;
+
+    function assignTypeSelected() { 
+        if (selectedCardIndexes.size === 0) {
+            alert("No cards selected in workspace.");
+            return;
+        }
+        const newAssignedType = prompt("Enter type to assign to selected workspace cards:"); 
+        if (newAssignedType && newAssignedType.trim() !== "") {
+            let changedCount = 0;
+            selectedCardIndexes.forEach(index => {
+                if (cards[index]) {
+                    cards[index].type = newAssignedType.trim();
+                    if (editorCardSource === 'workspace' && index === editorWorkspaceIndex) { 
+                        originalCardData.type = newAssignedType.trim(); 
+                        editCard(editorWorkspaceIndex); 
+                    }
+                    changedCount++;
+                }
+            });
+            if (changedCount > 0) {
+                alert(`Assigned type "${newAssignedType.trim()}" to ${changedCount} card(s) in workspace.`);
+                renderSidebar();
+            }
+        } else if (newAssignedType !== null) {
+            alert("Type cannot be empty.");
+        }
+    }
+    window.assignTypeSelected = assignTypeSelected;
+
+    window.addSelectedWorkspaceCardsToCollection = async function() {
+        if (selectedCardIndexes.size === 0) {
+            alert("No cards selected in the workspace to add to the collection.");
+            return;
+        }
+        let addedCount = 0;
+        let cardTitlesAdded = [];
+        const indexesToAdd = Array.from(selectedCardIndexes);
+
+        for (const index of indexesToAdd) {
+            if (cards[index]) {
+                const workspaceCardCopy = { ...cards[index] };
+                let cardToCollect;
+                if (unsavedChangesMap.has(index)) {
+                    const changes = unsavedChangesMap.get(index);
+                    if(confirm(`Card "${workspaceCardCopy.title || 'Untitled'}" has unsaved changes in workspace. Add the version with these changes to collection? (Cancel to skip this card)`)){
+                        cardToCollect = { ...workspaceCardCopy, ...changes };
+                    } else {
+                        continue; 
+                    }
+                } else {
+                    cardToCollect = workspaceCardCopy;
+                }
+                delete cardToCollect.id; 
+                await addCardToCollection(cardToCollect);
+                addedCount++;
+                cardTitlesAdded.push(cardToCollect.title || "Untitled");
+            }
+        }
+        if (addedCount > 0) {
+            alert(`Added ${addedCount} card(s) to collection: ${cardTitlesAdded.join(", ")}`);
+            if (collectionSidebar.style.display === 'flex') await loadCollectionCards();
+        } else if (indexesToAdd.length > 0) {
+             alert("No cards were added to collection (possibly all were skipped or cancelled).");
+        }
+    }
+
+
+    // --- Collection Card Functions (IndexedDB) ---
+    async function loadCollectionCards() {
+        try {
+            collectionCards = await db.collection.orderBy('originalIndex').toArray(); 
+            renderCollectionSidebar();
+        } catch (error) {
+            console.error("Error loading collection cards:", error);
+            alert("Could not load collection from database.");
+        }
+    }
+
+    async function addCardToCollection(cardData) {
+        try {
+            const cardToAdd = { ...cardData };
+            delete cardToAdd.id; 
+
+            const lastCardInCollection = await db.collection.orderBy('originalIndex').last();
+            cardToAdd.originalIndex = (lastCardInCollection && typeof lastCardInCollection.originalIndex === 'number')
+                                      ? lastCardInCollection.originalIndex + 1
+                                      : 0;
+            await db.collection.add(cardToAdd);
+        } catch (error) {
+            console.error("Error adding card to collection DB:", error);
+            throw error; 
+        }
+    }
+
+    async function editCollectionCard(dbId) { 
+        try {
+            const cardFromCollection = await db.collection.get(dbId);
+            if (!cardFromCollection) {
+                alert("Card not found in collection.");
+                return;
+            }
+
+            editorCardSource = 'collection';
+            editorCardDbId = dbId;
+            editorWorkspaceIndex = null; 
+            currentCardIndex = null;    
+
+            originalCardData = { ...cardFromCollection }; 
+            unsavedChangesMessage.textContent = "";
+            cancelChangesBtn.style.display = 'none';
+
+            editTitle.value = cardFromCollection.title || "";
+            editKeys.value = cardFromCollection.keys || "";
+            editDescription.value = cardFromCollection.description || "";
+            editUseForCC.checked = cardFromCollection.useForCharacterCreation || false;
+            valueEditor.value = cardFromCollection.value || "";
+            editorCharCount.textContent = `Character Count: ${(cardFromCollection.value || "").length}`;
+            const options = Array.from(editType.options).map(opt => opt.value);
+            if (options.includes(cardFromCollection.type)) {
+                editType.value = cardFromCollection.type;
+                editCustomType.style.display = 'none';
+                editCustomType.value = '';
+            } else {
+                editType.value = 'custom';
+                editCustomType.style.display = 'block';
+                editCustomType.value = cardFromCollection.type || "";
+            }
+            renderCollectionSidebar(); 
+            if (sidebar.style.display === 'flex') renderSidebar(); 
+        } catch (error) {
+            console.error("Error loading collection card into editor:", error);
+            alert("Failed to load collection card.");
+        }
+    }
+    window.editCollectionCard = editCollectionCard;
+
+
+    function renderCollectionSidebar() {
+        const filterText = collectionCardFilter.value.toLowerCase();
+        const sortBy = collectionCardSort.value;
+        let visibleCollectionCardsSource = [...collectionCards];
+
+        if (filterText) {
+            visibleCollectionCardsSource = visibleCollectionCardsSource.filter(card => {
+                const title = card.title?.toLowerCase() || "";
+                const type = card.type?.toLowerCase() || "";
+                const value = card.value?.toLowerCase() || "";
+                return title.includes(filterText) || type.includes(filterText) || value.includes(filterText);
+            });
+        }
+
+        if (sortBy === 'title') visibleCollectionCardsSource.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        else if (sortBy === 'type') visibleCollectionCardsSource.sort((a, b) => (a.type || "").localeCompare(b.type || ""));
+        else if (sortBy === 'length') visibleCollectionCardsSource.sort((a, b) => (b.value || "").length - (a.value || "").length);
+        else if (sortBy === 'default') {
+            visibleCollectionCardsSource.sort((a, b) => (a.originalIndex || 0) - (b.originalIndex || 0) || (a.id || 0) - (b.id || 0));
+        }
+
+
+        collectionCardListDiv.innerHTML = '';
+        visibleCollectionCardsSource.forEach(card => {
+            const div = document.createElement('div');
+            div.className = 'cardItem';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.id = card.id;
+            checkbox.checked = selectedCollectionCardDBIds.has(card.id);
+            checkbox.onchange = () => {
+                if (checkbox.checked) selectedCollectionCardDBIds.add(card.id);
+                else selectedCollectionCardDBIds.delete(card.id);
+            };
+
+            const row = document.createElement('div');
+            row.className = 'cardRow';
+            row.onclick = () => editCollectionCard(card.id);
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'cardTitle';
+            titleSpan.textContent = card.title || "Untitled";
+            if (editorCardSource === 'collection' && editorCardDbId === card.id) {
+                titleSpan.classList.add('active-card');
+            }
+            row.appendChild(titleSpan);
+            if (document.getElementById('settingShowType').checked) {
+                const typeSpan = document.createElement('span');
+                typeSpan.className = 'cardType';
+                typeSpan.textContent = card.type || "";
+                row.appendChild(typeSpan);
+            }
+            if (document.getElementById('settingShowChars').checked) {
+                const charsSpan = document.createElement('span');
+                charsSpan.className = 'cardLength';
+                charsSpan.textContent = (card.value || "").length;
+                row.appendChild(charsSpan);
+            }
+            div.appendChild(checkbox);
+            div.appendChild(row);
+            collectionCardListDiv.appendChild(div);
+        });
+        collectionCardCountEl.textContent = `Total Collection: ${collectionCards.length} (Showing: ${visibleCollectionCardsSource.length})`;
+        collectionTypeHeader.style.display = document.getElementById('settingShowType').checked ? 'inline-block' : 'none';
+        collectionCharsHeader.style.display = document.getElementById('settingShowChars').checked ? 'inline-block' : 'none';
+    }
+
+    collectionToggleBtn.onclick = () => {
+        const collSidebarVisible = collectionSidebar.style.display === 'flex';
+        if (collSidebarVisible) {
+            collectionSidebar.style.display = 'none';
+        } else {
+            collectionSidebar.style.display = 'flex';
+            loadCollectionCards(); 
+        }
+        updateMobileLayout(); 
+    };
+    collectionCardFilter.addEventListener('input', renderCollectionSidebar);
+    collectionCardSort.addEventListener('change', renderCollectionSidebar);
+    collectionSelectAllBox.addEventListener('change', (e) => {
+        const checkboxes = document.querySelectorAll('#collectionCardList input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            const card_id = parseInt(cb.dataset.id);
+            cb.checked = e.target.checked;
+            if (e.target.checked) selectedCollectionCardDBIds.add(card_id);
+            else selectedCollectionCardDBIds.delete(card_id);
+        });
+    });
+
+    window.deleteSelectedFromCollection = async function() {
+        if (selectedCollectionCardDBIds.size === 0) {
+            alert("No cards selected from collection to delete.");
+            return;
+        }
+        if (confirm(`Permanently delete ${selectedCollectionCardDBIds.size} card(s) from collection?`)) {
+            try {
+                let editorAffected = false;
+                Array.from(selectedCollectionCardDBIds).forEach(id => {
+                    if(editorCardSource === 'collection' && editorCardDbId === id) {
+                        editorAffected = true;
+                    }
+                });
+
+                await db.collection.bulkDelete(Array.from(selectedCollectionCardDBIds));
+                selectedCollectionCardDBIds.clear();
+                collectionSelectAllBox.checked = false;
+
+                if(editorAffected) {
+                    clearEditorAndState();
+                }
+                await loadCollectionCards(); 
+                alert("Selected card(s) deleted from collection.");
+            } catch (error) {
+                console.error("Error deleting from collection:", error);
+                alert("Failed to delete cards from collection.");
+            }
+        }
+    }
+
+    window.addSelectedToWorkspace = async function() {
+        if (selectedCollectionCardDBIds.size === 0) {
+            alert("No cards selected from collection.");
+            return;
+        }
+        try {
+            const cardsFromDb = await db.collection.bulkGet(Array.from(selectedCollectionCardDBIds));
+            let addedCount = 0;
+            cardsFromDb.forEach(collCard => {
+                if (collCard) {
+                    const workspaceCard = { ...collCard };
+                    delete workspaceCard.id;
+                    delete workspaceCard.originalIndex; 
+                    workspaceCard.originalIndex = cards.length; 
+                    cards.push(workspaceCard);
+                    addedCount++;
+                }
+            });
+            if (addedCount > 0) {
+                if (sidebar.style.display === 'flex') renderSidebar();
+                alert(`Added ${addedCount} card(s) to workspace.`);
+            }
+        } catch (error) {
+            console.error("Error adding to workspace:", error);
+            alert("Failed to add cards to workspace.");
+        }
+    }
+
+    window.importCollectionJSON = async function() {
+        if (confirm("Importing will OVERWRITE the current collection. Continue?")) {
+            collectionFileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const importedData = JSON.parse(ev.target.result);
+                        if (!Array.isArray(importedData)) {
+                            alert("Invalid JSON: Data not an array."); return;
+                        }
+                        await db.transaction('rw', db.collection, async () => {
+                            await db.collection.clear();
+                            const collectionToAdd = importedData.map((card, index) => {
+                                const { id, ...rest } = card; 
+                                return { ...rest, originalIndex: index };
+                            });
+                            await db.collection.bulkAdd(collectionToAdd);
+                        });
+                        if (editorCardSource === 'collection') clearEditorAndState();
+                        await loadCollectionCards();
+                        alert(`Collection imported from "${file.name}", overwriting previous.`);
+                    } catch (err) {
+                        console.error("Err import collection:", err);
+                        alert("Invalid JSON or import error.");
+                    } finally {
+                        collectionFileInput.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            };
+            collectionFileInput.click();
+        }
+    }
+
+    window.exportCollectionJSON = async function() {
+        try {
+            const allCollectionCardsRaw = await db.collection.orderBy('originalIndex').toArray();
+            if (allCollectionCardsRaw.length === 0) {
+                alert("Collection is empty."); return;
+            }
+
+            const cardsToExport = allCollectionCardsRaw.map(card => {
+                 const { id, originalIndex, ...rest } = card; 
+                 return rest;                                 
+            });
+
+            const sortBy = collectionCardSort.value; 
+            const sortedCardsToExport = [...cardsToExport];
+            if (sortBy === 'title') sortedCardsToExport.sort((a,b) => (a.title||"").localeCompare(b.title||""));
+            else if (sortBy === 'type') sortedCardsToExport.sort((a,b) => (a.type||"").localeCompare(b.type||""));
+            else if (sortBy === 'length') sortedCardsToExport.sort((a,b) => (b.value||"").length - (a.value||"").length);
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sortedCardsToExport, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "story_card_collection.json");
+            dlAnchor.click();
+            alert("Collection exported.");
+        } catch (err) {
+            console.error("Err export collection:", err);
+            alert("Failed to export collection.");
+        }
+    }
+
+
+    // --- Settings Functions ---
+    document.getElementById('settingsBtn').onclick = () => toggleSettings(true);
+    document.getElementById('settingsOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'settingsOverlay') toggleSettings(false);
+    });
+    function toggleSettings(show) {
+        document.getElementById('settingsOverlay').style.display = show ? 'flex' : 'none';
+    }
+
+    window.saveSettings = function() {
+        const sidebarFont = document.getElementById('sidebarFont').value + 'px';
+        const editorFont = document.getElementById('editorFont').value + 'px';
+        const charFont = document.getElementById('charFont').value + 'px';
+        const typeFont = document.getElementById('typeFont').value + 'px';
+        const showChars = document.getElementById('settingShowChars').checked;
+        const showType = document.getElementById('settingShowType').checked;
+        const tapToClose = document.getElementById('settingTapToClose').checked;
+
+        document.documentElement.style.setProperty('--sidebar-font-size', sidebarFont);
+        document.documentElement.style.setProperty('--editor-font-size', editorFont);
+        document.documentElement.style.setProperty('--char-font-size', charFont);
+        document.documentElement.style.setProperty('--type-font-size', typeFont);
+
+        localStorage.setItem('sidebarFontSize', sidebarFont);
+        localStorage.setItem('editorFontSize', editorFont);
+        localStorage.setItem('charFontSize', charFont);
+        localStorage.setItem('typeFontSize', typeFont);
+        localStorage.setItem('showChars', String(showChars));
+        localStorage.setItem('showType', String(showType));
+        localStorage.setItem('tapToCloseSidebar', String(tapToClose));
+
+        toggleSettings(false);
+        window.loadSettings(); 
+        if (sidebar.style.display === 'flex') renderSidebar();
+        if (collectionSidebar.style.display === 'flex') renderCollectionSidebar();
+    }
+
+    window.loadSettings = function() {
+        const sidebarFont = localStorage.getItem('sidebarFontSize') || '14px';
+        const editorFont = localStorage.getItem('editorFontSize') || '14px';
+        const charFont = localStorage.getItem('charFontSize') || '14px';
+        const typeFont = localStorage.getItem('typeFontSize') || '14px';
+        const showChars = localStorage.getItem('showChars') !== 'false';
+        const showType = localStorage.getItem('showType') !== 'false';
+        const tapToClose = localStorage.getItem('tapToCloseSidebar') === 'true';
+
+        document.documentElement.style.setProperty('--sidebar-font-size', sidebarFont);
+        document.documentElement.style.setProperty('--editor-font-size', editorFont);
+        document.documentElement.style.setProperty('--char-font-size', charFont);
+        document.documentElement.style.setProperty('--type-font-size', typeFont);
+
+        document.getElementById('sidebarFont').value = parseInt(sidebarFont);
+        document.getElementById('editorFont').value = parseInt(editorFont);
+        document.getElementById('charFont').value = parseInt(charFont);
+        document.getElementById('typeFont').value = parseInt(typeFont);
+        document.getElementById('settingShowChars').checked = showChars;
+        document.getElementById('settingShowType').checked = showType;
+        document.getElementById('settingTapToClose').checked = tapToClose;
+
+        if(typeHeader) typeHeader.style.display = showType ? 'inline-block' : 'none';
+        if(charsHeader) charsHeader.style.display = showChars ? 'inline-block' : 'none';
+        if(collectionTypeHeader) collectionTypeHeader.style.display = showType ? 'inline-block' : 'none';
+        if(collectionCharsHeader) collectionCharsHeader.style.display = showChars ? 'inline-block' : 'none';
+    }
+
+    // --- Event Listeners for Main Sidebar & Initial Load ---
+    // Tap outside to close sidebars (original logic)
+    document.getElementById('main').addEventListener('click', (e) => {
+        const tapToCloseEnabled = document.getElementById('settingTapToClose').checked;
+        if (tapToCloseEnabled) {
+            let updatedLayout = false;
+            if (sidebar.style.display === 'flex' && !sidebar.contains(e.target) && e.target.id !== 'cardListToggle' && !e.target.closest('#header')) {
+                sidebar.style.display = 'none';
+                updatedLayout = true;
+            }
+            if (collectionSidebar.style.display === 'flex' && !collectionSidebar.contains(e.target) && e.target.id !== 'collectionToggleBtn' && !e.target.closest('#header')) {
+                collectionSidebar.style.display = 'none';
+                updatedLayout = true;
+            }
+            if (updatedLayout) {
+                updateMobileLayout();
+            }
+        }
+    });
+    
+    cardFilter.addEventListener('input', renderSidebar);
+    cardSort.addEventListener('change', renderSidebar);
+
+    // Add event listeners for resize and initial load for mobile layout
+    window.addEventListener('resize', updateMobileLayout);
+    window.addEventListener('load', () => {
+        updateMobileLayout(); // Ensure layout is correct on load
+    });
+
+
+    // --- Initial Application Load ---
+    window.loadSettings(); // Load and apply settings first
+    renderSidebar();       // Initial render for workspace (likely empty)
+    clearEditorAndState(); // Ensure editor is clear and state is reset on load
+    // updateMobileLayout(); // Called by window.load event listener now
+    // No automatic loading of collection here; it loads when its toggle is clicked.
+    // This keeps initial load faster if collection is large.
+    
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('Service Worker registered:', reg))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      }
+  </script>
+</body>
+</html>
