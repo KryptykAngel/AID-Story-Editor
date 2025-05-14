@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Story Editor</title>
-  <!-- <KryptykAngel> -->
-  <!-- <Version 1.0 > -->
+  <!-- <author>KryptykAngel</author> -->
+  <!-- <version>Version 2.0</version> -->
   <link rel="manifest" href="manifest.json" />
   <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
     <style>
@@ -25,7 +25,7 @@
       padding: 1rem;
       border-bottom: 1px solid #333;
       background-color: #121212;
-      z-index: 10; /* Ensure header is above sidebars if they ever overlap in weird ways */
+      z-index: 10; 
     }
     #header button {
       background-color: #333;
@@ -40,12 +40,15 @@
     #header button#collectionToggleBtn {
         color: #f0f0f0;
     }
+    #header button#modeToggleBtn { 
+        color: #f0f0f0;
+    }
 
     #contentWrap {
       flex: 1;
       display: flex;
-      position: relative; /* For absolute positioning of sidebars on mobile */
-      overflow-x: hidden; /* IMPORTANT: Changed from auto to hidden to prevent scroll with overlay */
+      position: relative; 
+      overflow-x: hidden; 
     }
 
     /* Left Sidebar - Base Styles */
@@ -54,13 +57,12 @@
       max-width: 500px;
       flex-shrink: 0;
       background-color: #1e1e1e;
-      /* border-right is applied conditionally by media query or if collection sidebar is not absolute */
       padding: 0;
-      display: none; /* Initially hidden */
+      display: none; 
       flex-direction: column;
-      position: relative; /* Default for desktop layout */
+      position: relative; 
       order: 1;
-      border-right: 1px solid #333; /* Default for desktop */
+      border-right: 1px solid #333; 
     }
 
     /* Right Sidebar (Collection) - Base Styles */
@@ -69,37 +71,59 @@
         max-width: 500px;
         flex-shrink: 0;
         background-color: #1e1e1e;
-        /* border-left is applied conditionally */
         padding: 0;
-        display: none; /* Initially hidden */
+        display: none; 
         flex-direction: column;
-        position: relative; /* Default for desktop layout */
+        position: relative; 
         order: 3;
-        border-left: 1px solid #333; /* Default for desktop */
+        border-left: 1px solid #333; 
     }
 
-    #sidebarHeader, #collectionSidebarHeader { /* Combined common style */
+    #sidebarHeader, #collectionSidebarHeader { 
       background-color: #1e1e1e;
-      z-index: 5; /* Above card list within sidebar */
+      z-index: 5; 
       padding: 1rem 1rem 0.5rem 1rem;
       border-bottom: 1px solid #333;
     }
-    #sidebarStats, #collectionSidebarStats { /* Combined common style */
+    #sidebarStats, #collectionSidebarStats { 
       margin-bottom: 0.5rem;
     }
-    #cardCount, #collectionCardCount { /* Combined common style */
+    #cardCountEl, #collectionCardCount { /* Renamed cardCount to cardCountEl in HTML for consistency */
       font-size: 1rem;
       margin-bottom: 0.5rem;
     }
-    #cardFilter, #cardSort, #collectionCardFilter, #collectionCardSort { /* Combined common style */
-      width: 100%; /* Take full width of parent */
-      box-sizing: border-box; /* Include padding and border in the element's total width and height */
+     #sidebarStatsTopRow { 
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    #viewStoryBtn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        background-color: #444;
+        color: #f0f0f0;
+        border: 1px solid #555;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    #cardFilter, #cardSort, #collectionCardFilter, #collectionCardSort, #sidebarSelectAllContainer { 
+      width: 100%; 
+      box-sizing: border-box; 
       margin-bottom: 0.5rem;
       padding: 0.3rem;
       background: #1e1e1e;
       color: #f0f0f0;
       border: 1px solid #333;
       border-radius: 3px;
+    }
+    #sidebarSelectAllContainer { /* Specific for the container of select all */
+        padding: 0; /* Remove padding if it's just a container */
+        border: none; /* No border for the container itself */
+        background: transparent;
+    }
+    #cardSort, #collectionCardSort {
+        padding: 0.3rem; /* Ensure select has padding */
     }
     .cardListHeader {
       display: grid;
@@ -112,7 +136,6 @@
       text-align: left;
     }
     .colTitle {
-      /* flex: 1; No longer needed due to grid */
       padding-right: 0.5rem;
       white-space: nowrap;
       overflow: hidden;
@@ -122,17 +145,61 @@
       width: 60px;
       text-align: left;
       font-size: var(--type-font-size, 14px);
-      display: inline-block; /* Keep for consistency if used elsewhere */
+      display: inline-block; 
     }
     .colChars {
       width: 40px;
-      text-align: right; /* Usually char counts are right aligned */
+      text-align: right; 
       font-size: var(--char-font-size, 14px);
       display: inline-block;
     }
-    #cardList, #collectionCardList {
+    #cardList, #collectionCardList, #jsonTreeView { 
       flex-grow: 1;
       overflow-y: auto;
+    }
+   #jsonTreeView {
+        padding: 0.5rem;
+        font-family: monospace;
+        font-size: var(--json-tree-font-size, 0.875rem); /* Use CSS variable, 0.875rem is ~14px if base is 16px, or use px like 12px */
+        display: none;
+    }
+    .json-tree-item {
+        margin-left: 15px;
+        cursor: default;
+        user-select: none; /* Prevent text selection on keys */
+    }
+    .json-tree-item.collapsible > .json-key::before {
+        content: '▶ '; 
+        cursor: pointer;
+    }
+     .json-tree-item.collapsible.expanded > .json-key::before {
+        content: '▼ '; 
+    }
+    .json-key {
+        color: #9cdcfe; 
+        cursor: pointer;
+    }
+    .json-key:hover {
+        text-decoration: underline;
+    }
+    .json-value-container { /* Container for the value part if needed for styling */
+        /* No specific styles needed for now */
+    }
+    .json-value {
+        color: #ce9178; 
+    }
+    .json-value.number {
+        color: #b5cea8; 
+    }
+    .json-value.boolean {
+        color: #569cd6; 
+    }
+    .json-value.null {
+        color: #569cd6; 
+    }
+    .json-placeholder {
+        color: #808080; 
+        font-style: italic;
     }
     .cardItem {
       display: flex;
@@ -170,7 +237,7 @@
     }
     .cardLength {
       font-size: var(--char-font-size, 14px);
-      text-align: left; /* If you prefer left for chars */
+      text-align: left; 
     }
     #batchActions, #collectionBatchActions {
       background-color: #1e1e1e;
@@ -201,14 +268,33 @@
       padding: 1rem;
       overflow-y: auto;
       order: 2;
-      min-width: 200px; /* Default min-width for desktop */
-      /* z-index: 0; /* Ensure it's behind absolutely positioned sidebars if they ever overlap */
+      min-width: 200px; 
+    }
+    #main #storyJsonEditor { 
+        width: 100%;
+        height: calc(var(--vh, 1vh) * 80); 
+        box-sizing: border-box;
+        background: #1e1e1e;
+        color: #f0f0f0;
+        border: 1px solid #333;
+        padding: 0.5rem;
+        font-size: var(--editor-font-size, 14px);
+        border-radius: 3px;
+        resize: vertical;
+        display: none; 
+        white-space: pre-wrap; 
+        overflow-wrap: break-word;
+        font-family: monospace;
+    }
+    #editor { /* Container for card editing fields */
+        display: flex;
+        flex-direction: column; /* Ensures children stack vertically */
     }
     #editor input,
     #editor select,
     #editor textarea {
-      width: 100%; /* Use 100% for better responsiveness with box-sizing */
-      box-sizing: border-box; /* Include padding and border in the element's total width */
+      width: 100%; 
+      box-sizing: border-box; 
       margin-bottom: 0.5rem;
       background: #1e1e1e;
       color: #f0f0f0;
@@ -220,7 +306,7 @@
     #editCustomType {
       display: none;
     }
-    #charCount { /* This is the editor's character count */
+    #charCount { 
       text-align: right;
       font-size: 0.9rem;
       color: #aaa;
@@ -245,24 +331,22 @@
         margin-bottom: 0.5rem;
     }
     #editor .button-group button {
-        flex-grow: 0; /* Make buttons share space */
-        background-color: #333; /* Default editor button color */
+        flex-grow: 0; 
+        background-color: #333; 
         color: white;
-         /* padding and border-radius will be inherited from #header button if not overridden */
     }
-    #editor #cancelChangesBtn { /* Specific styling for cancel button */
+    #editor #cancelChangesBtn { 
         width:100%;
-        background-color: #dc3545; /* Red for cancel/delete */
+        background-color: #dc3545; 
         color:white;
-        margin-top: 0.5rem; /* Ensure it has some space */
+        margin-top: 0.5rem; 
     }
-    #editor button[onclick="addCurrentCardToCollection()"] { /* Style for add to collection button in editor */
-        background-color: #28a745; /* Green for add/confirm */
+    #editor button[onclick="addCurrentCardToCollection()"] { 
+        background-color: #28a745; 
         color: white;
     }
 
 
-    /* Collection Sidebar specific styles, if any, beyond what's shared */
     .collection-io-buttons {
         display: flex;
         gap: 0.5rem;
@@ -274,7 +358,7 @@
         background-color: #007bff;
         color: white;
         border: none;
-        padding: 0.5rem; /* Match other sidebar buttons */
+        padding: 0.5rem; 
         border-radius: 4px;
         font-size: 0.7rem;
         cursor: pointer;
@@ -283,7 +367,6 @@
         background-color: #0056b3;
     }
 
-    /* Workspace (Left Sidebar) I/O Buttons */
     .workspace-io-buttons {
         display: flex;
         gap: 0.5rem;
@@ -303,9 +386,11 @@
     .workspace-io-buttons button:hover {
         background-color: #0056b3; 
     }
+    .workspace-io-buttons button#exportBtn.disabled { 
+        background-color: #808080; 
+        cursor: not-allowed;
+    }
 
-
-    /* Settings Overlay */
     #settingsOverlay {
       position: fixed;
       top: 0;
@@ -337,12 +422,12 @@
       font-size: 0.95rem;
     }
     #settingsPanel input[type="number"], #settingsPanel input[type="checkbox"] {
-        margin-right: 0.5rem; /* For spacing if label text is short */
+        margin-right: 0.5rem; 
     }
     #settingsPanel button {
         margin-top: 1.5rem;
         padding: 0.6rem 1.2rem;
-        background-color: #007bff; /* Consistent button style */
+        background-color: #007bff; 
         color: white;
         border:none;
         border-radius: 4px;
@@ -358,93 +443,58 @@
       margin: 0.3rem 0 0.3rem;
     }
 
-    /* === Mobile Specific Overrides for Sidebar Behavior === */
     @media (max-width: 768px) {
-        /* #contentWrap remains display: flex */
-
-        /* Default behavior for sidebars on mobile: in flow, take their defined width */
         #sidebar, #collectionSidebar {
-            position: relative; /* Ensures they are in flow, not absolute by default */
-            /* width: 50%; /* From base styles */
-            /* max-width: 500px; /* From base styles */
-            height: 100%;    /* Span the full height of contentWrap */
+            position: relative; 
+            height: 100%;    
             overflow-y: auto;
-            z-index: 5;      /* Above main content if there's any overlap issue, but below header */
-            box-shadow: none;/* No shadow if in flow */
-            flex-shrink: 0;  /* Prevent shrinking beyond their defined width */
+            z-index: 5;      
+            box-shadow: none;
+            flex-shrink: 0;  
         }
-
         #sidebar {
-            /* left: auto; /* Reset from potential absolute positioning */ /* Not needed for relative */
-            border-right: 1px solid #333; /* Default border for when it's visible and in flow */
+            border-right: 1px solid #333; 
         }
-        #sidebar:not([style*="display: flex"]) { /* If display is 'none' */
+        #sidebar:not([style*="display: flex"]) { 
              border-right: none;
         }
-
-
         #collectionSidebar {
-            /* right: auto; /* Reset from potential absolute positioning */ /* Not needed for relative */
-            border-left: 1px solid #333; /* Default border for when it's visible and in flow */
+            border-left: 1px solid #333; 
         }
-        #collectionSidebar:not([style*="display: flex"]) { /* If display is 'none' */
+        #collectionSidebar:not([style*="display: flex"]) { 
              border-left: none;
         }
-
         #main {
-            flex-grow: 1;     /* Allows main to take remaining space */
-            min-width: 50px;  /* Prevent main from disappearing completely if sidebars are wide, adjust as needed */
-            width: auto;      /* Let flexbox determine width based on available space */
-            z-index: 1;       /* Default z-index */
-            overflow-y: auto; /* Ensure main content can scroll if it overflows */
+            flex-grow: 1;     
+            min-width: 50px;  
+            width: auto;      
+            z-index: 1;       
+            overflow-y: auto; 
         }
-
-        /* Case: ONLY LEFT sidebar is open (shrink behavior) */
-        body.mobile-left-sidebar-open #main {
-            /* Main content shrinks, flexbox handles this by default as #sidebar is in flow */
-        }
-        body.mobile-left-sidebar-open #sidebar {
-            /* Styles for left sidebar when it's the only one open */
-        }
-
-        /* Case: ONLY RIGHT sidebar is open (shrink behavior) */
-        body.mobile-right-sidebar-open #main {
-            /* Main content shrinks, flexbox handles this by default as #collectionSidebar is in flow */
-        }
-        body.mobile-right-sidebar-open #collectionSidebar {
-            /* Styles for right sidebar when it's the only one open */
-        }
-
-        /* Case: BOTH sidebars are open - they become absolute and overlay main */
         body.mobile-both-sidebars-open #sidebar,
         body.mobile-both-sidebars-open #collectionSidebar {
             position: absolute;
             top: 0;
             bottom: 0;
-            /* height: 100%; /* Already set from general mobile sidebar style */
-            z-index: 15; /* Higher z-index to overlay main */
+            z-index: 15; 
             box-shadow: 0px 0px 15px rgba(0,0,0,0.5);
-            /* width: 50%; /* Retain their width */
         }
-
         body.mobile-both-sidebars-open #sidebar {
             left: 0;
-            border-right: none; /* Optional: hide border when overlaying if next to other sidebar */
+            border-right: none; 
         }
-
         body.mobile-both-sidebars-open #collectionSidebar {
             right: 0;
-            border-left: none; /* Optional: hide border when overlaying */
+            border-left: none; 
         }
-
         body.mobile-both-sidebars-open #main {
-            position: absolute; /* Needed for z-index stacking and to fill space under overlays */
-            width: 100%;      /* Occupy full width behind */
-            height: 100%;     /* Occupy full height behind */
+            position: absolute; 
+            width: 100%;      
+            height: 100%;     
             left: 0;
             top: 0;
-            z-index: 1;       /* Ensure it's below the absolute sidebars */
-            min-width: 0;     /* Allow it to be fully covered */
+            z-index: 1;       
+            min-width: 0;     
         }
     }
   </style>  
@@ -452,7 +502,8 @@
 <body>
   <div id="header">
     <button id="cardListToggle">☰</button>
-    <h1 style="flex:1; font-size:1.2rem;">Story Card Editor</h1>
+    <h1 id="appTitle" style="flex:1; font-size:1.2rem;">Story Card Editor</h1>
+    <button id="modeToggleBtn">Story Editor</button> 
     <button id="settingsBtn">⚙️</button>
     <button id="collectionToggleBtn">★</button>
     <input type="file" id="fileInput" accept="application/json" style="display:none" />
@@ -463,11 +514,15 @@
     <div id="sidebar"> 
       <div id="sidebarHeader">
             <div id="sidebarStats">
-                <div id="cardCount">Total Cards: 0</div>
+                <div id="sidebarStatsTopRow"> 
+                    <div id="cardCountEl">Total Cards: 0</div>
+                    <button id="viewStoryBtn" style="display:none;">View Story</button> 
+                </div>
                 <div class="workspace-io-buttons">
                     <button id="importBtn">Import Cards</button> 
                     <button id="exportBtn">Export Cards</button> 
                 </div>
+                Json Tree View
                 <input id="cardFilter" placeholder="Filter by title/type/value..." />
                 <select id="cardSort">
                     <option value="default" selected>Sort: Default</option>
@@ -475,7 +530,7 @@
                     <option value="type">Sort: Type</option>
                     <option value="length">Sort: Character Count</option>
                 </select>
-                <div style="margin: 0.5rem 0;">
+                <div id="sidebarSelectAllContainer" style="margin: 0.5rem 0;">
                     <label style="font-size: 0.85rem;">
                         <input type="checkbox" id="selectAllBox" />
                         Select All
@@ -488,7 +543,8 @@
                 <span class="colChars" id="charsHeader">Chars</span>
             </div>
         </div>
-        <div id="cardList"></div>
+        <div id="cardList"></div> 
+        <div id="jsonTreeView" style="display:none;"></div> 
         <div id="batchActions">
             <button onclick="deleteSelected()">Delete</button>
             <button onclick="assignTypeSelected()">Set Type</button>
@@ -497,7 +553,7 @@
     </div>
 
     <div id="main">
-        <div id="editor">
+        <div id="editor"> 
             <input id="editTitle" placeholder="Title" />
             <input id="editKeys" placeholder="Keys / Triggers" />
             <select id="editType">
@@ -526,6 +582,7 @@
             <div id="unsavedChangesMessage" style="color: red; margin-top: 0.5rem; height: 1.2em;"></div>
             <button id="cancelChangesBtn" onclick="cancelChanges()" style="margin-top: 0.5rem; display: none; width:100%; background-color: #dc3545; color:white;">Cancel Changes</button>
         </div>
+        <textarea id="storyJsonEditor" style="display:none;" readonly></textarea> 
     </div>
 
     <div id="collectionSidebar"> 
@@ -575,6 +632,8 @@
       <input type="number" id="charFont" min="10" max="24" value="14" />
       <label for="typeFont">Sidebar Type Column Font Size (px)</label>
       <input type="number" id="typeFont" min="10" max="24" value="14" />
+      <label for="jsonTreeFont">JSON Tree Font Size (px)</label>
+      <input type="number" id="jsonTreeFont" min="8" max="20" value="12" />
       <label><input type="checkbox" id="settingShowChars" checked /> Show Character Count Column in Sidebars</label>
       <label><input type="checkbox" id="settingShowType" checked /> Show Type Column in Sidebars</label>
       <label><input type="checkbox" id="settingTapToClose" /> Tapping outside active sidebar hides it</label>
@@ -594,33 +653,46 @@
     setVisualViewportHeight();
 
     // --- Global State & DOM References (Workspace) ---
-    let cards = []; // Workspace cards
-    let currentCardIndex = null; // Index in 'cards' array for the card in editor if source is 'workspace'
-    let currentFileName = "story_cards.json";
-    const selectedCardIndexes = new Set(); // For workspace cards (using originalArrayIndexInCards)
-    let originalCardData = null; // For "Cancel Changes" in editor (stores pristine version of loaded card)
-    let unsavedChangesMap = new Map(); // For workspace cards (key: index in 'cards' array)
+    let cards = []; 
+    let currentCardIndex = null; 
+    let currentFileName = "story_cards.json"; 
+    const selectedCardIndexes = new Set(); 
+    let originalCardData = null; 
+    let unsavedChangesMap = new Map(); 
 
-    // NEW: Global state for editor source
-    let editorCardSource = null; // 'workspace', 'collection', or null (if new card not yet saved)
-    let editorCardDbId = null;   // IndexedDB ID if source is 'collection'
-    let editorWorkspaceIndex = null; // 'cards' array index if source is 'workspace' (this is `currentCardIndex`)
+    let editorCardSource = null; 
+    let editorCardDbId = null;   
+    let editorWorkspaceIndex = null; 
 
+    let currentEditorMode = 'cardEditor'; 
+    let currentStoryView = 'cards'; 
+    let importedStoryData = null; 
 
     const sidebar = document.getElementById('sidebar');
     const cardListDiv = document.getElementById('cardList');
     const cardFilter = document.getElementById('cardFilter');
     const cardSort = document.getElementById('cardSort');
-    const cardCount = document.getElementById('cardCount');
+    const cardCountEl = document.getElementById('cardCountEl'); 
     const selectAllBox = document.getElementById('selectAllBox');
-    const typeHeader = document.getElementById('typeHeader'); // Workspace type header
-    const charsHeader = document.getElementById('charsHeader'); // Workspace chars header
-    const main = document.getElementById('main'); // ADDED for mobile layout
-
+    const sidebarSelectAllContainer = document.getElementById('sidebarSelectAllContainer');
+    const typeHeader = document.getElementById('typeHeader'); 
+    const charsHeader = document.getElementById('charsHeader'); 
+    const cardListHeaderForSidebar = document.querySelector('#sidebar .cardListHeader');
+    const main = document.getElementById('main'); 
+    const appTitle = document.getElementById('appTitle');
+    const modeToggleBtn = document.getElementById('modeToggleBtn');
+    const importBtn = document.getElementById('importBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const viewStoryBtn = document.getElementById('viewStoryBtn');
+    const jsonTreeView = document.getElementById('jsonTreeView');
+    const storyJsonEditor = document.getElementById('storyJsonEditor');
+    const editorDiv = document.getElementById('editor'); 
+    const batchActionsDiv = document.getElementById('batchActions'); 
+    
     // Editor DOM Elements
     const valueEditor = document.getElementById('valueEditor');
     const editDescription = document.getElementById('editDescription');
-    const editorCharCount = document.getElementById('charCount'); // Renamed for clarity
+    const editorCharCount = document.getElementById('charCount'); 
     const editTitle = document.getElementById('editTitle');
     const editKeys = document.getElementById('editKeys');
     const editType = document.getElementById('editType');
@@ -629,31 +701,27 @@
     const unsavedChangesMessage = document.getElementById('unsavedChangesMessage');
     const cancelChangesBtn = document.getElementById('cancelChangesBtn');
 
-    // File I/O
     const fileInput = document.getElementById('fileInput');
-    const collectionFileInput = document.getElementById('collectionFileInput'); // Defined earlier
+    const collectionFileInput = document.getElementById('collectionFileInput'); 
 
-    // --- Global State & DOM References (Collection) ---
-    let collectionCards = []; // Holds collection cards fetched from DB for display
-    const selectedCollectionCardDBIds = new Set(); // Holds IndexedDB 'id' of selected collection cards
+    let collectionCards = []; 
+    const selectedCollectionCardDBIds = new Set(); 
 
     const collectionSidebar = document.getElementById('collectionSidebar');
     const collectionCardListDiv = document.getElementById('collectionCardList');
     const collectionCardFilter = document.getElementById('collectionCardFilter');
     const collectionCardSort = document.getElementById('collectionCardSort');
-    const collectionCardCountEl = document.getElementById('collectionCardCount'); // Renamed for clarity
+    const collectionCardCountEl = document.getElementById('collectionCardCount'); 
     const collectionSelectAllBox = document.getElementById('collectionSelectAllBox');
     const collectionToggleBtn = document.getElementById('collectionToggleBtn');
     const collectionTypeHeader = document.getElementById('collectionTypeHeader');
     const collectionCharsHeader = document.getElementById('collectionCharsHeader');
 
-    // --- Dexie.js Database Setup ---
     const db = new Dexie("StoryCardCollectionDB");
     db.version(1).stores({
         collection: '++id, title, type, originalIndex'
     });
 
-    // --- Utility Functions ---
     function getEditorData() {
       return {
         title: editTitle.value.trim(),
@@ -665,85 +733,368 @@
       };
     }
 
-    // --- Mobile Layout Updater ---
     function updateMobileLayout() {
         const body = document.body;
         const isDesktop = window.innerWidth > 768;
-
-        // Always remove mobile classes first
         body.classList.remove('mobile-left-sidebar-open', 'mobile-right-sidebar-open', 'mobile-both-sidebars-open');
-
-        // Reset inline styles that might have been applied for specific mobile states
-        // This allows CSS classes to take precedence or revert to stylesheet defaults.
-        sidebar.style.position = '';
-        sidebar.style.left = '';
-        sidebar.style.zIndex = '';
-        sidebar.style.boxShadow = '';
-
-        collectionSidebar.style.position = '';
-        collectionSidebar.style.right = '';
-        collectionSidebar.style.zIndex = '';
-        collectionSidebar.style.boxShadow = '';
-
-        main.style.position = '';
-        main.style.width = '';
-        main.style.left = '';
-        main.style.top = '';
-        main.style.height = '';
-        main.style.zIndex = '';
-        main.style.minWidth = ''; // Reset minWidth that might be set for 'both open' case
-
-
-        if (isDesktop) {
-            // On desktop, ensure no mobile layout classes are present.
-            return;
-        }
-
-        // Mobile specific logic
+        sidebar.style.position = ''; sidebar.style.left = ''; sidebar.style.zIndex = ''; sidebar.style.boxShadow = '';
+        collectionSidebar.style.position = ''; collectionSidebar.style.right = ''; collectionSidebar.style.zIndex = ''; collectionSidebar.style.boxShadow = '';
+        main.style.position = ''; main.style.width = ''; main.style.left = ''; main.style.top = ''; main.style.height = ''; main.style.zIndex = ''; main.style.minWidth = ''; 
+        if (isDesktop) return;
         const isLeftOpen = sidebar.style.display === 'flex';
         const isRightOpen = collectionSidebar.style.display === 'flex';
-
-        if (isLeftOpen && isRightOpen) {
-            body.classList.add('mobile-both-sidebars-open');
-        } else if (isLeftOpen) {
-            body.classList.add('mobile-left-sidebar-open');
-        } else if (isRightOpen) {
-            body.classList.add('mobile-right-sidebar-open');
+        if (isLeftOpen && isRightOpen) body.classList.add('mobile-both-sidebars-open');
+        else if (isLeftOpen) body.classList.add('mobile-left-sidebar-open');
+        else if (isRightOpen) body.classList.add('mobile-right-sidebar-open');
+    }
+    
+    modeToggleBtn.onclick = () => {
+        if (currentEditorMode === 'cardEditor') {
+            currentEditorMode = 'storyEditor';
+            modeToggleBtn.textContent = 'Card Editor';
+            appTitle.textContent = 'Story Editor';
+            cardCountEl.textContent = 'Total Cards: 0 (0)';
+            importBtn.textContent = 'Import Story';
+            exportBtn.textContent = 'Export Story';
+            exportBtn.classList.add('disabled'); 
+            viewStoryBtn.style.display = 'inline-block'; 
+            viewStoryBtn.textContent = 'View Story'; 
+            currentStoryView = 'cards'; 
+            clearEditorAndState(); 
+            cards = []; 
+            importedStoryData = null; 
+            updateUIForStoryEditorMode(); 
+            renderSidebar(); 
+        } else {
+            currentEditorMode = 'cardEditor';
+            modeToggleBtn.textContent = 'Story Editor';
+            appTitle.textContent = 'Story Card Editor';
+            importBtn.textContent = 'Import Cards';
+            exportBtn.textContent = 'Export Cards';
+            exportBtn.classList.remove('disabled'); 
+            viewStoryBtn.style.display = 'none'; 
+            clearEditorAndState(); 
+            cards = []; 
+            importedStoryData = null;
+            updateUIForCardEditorMode();
+            renderSidebar(); 
         }
-        // If neither is open, no class is added, main content takes full width by default.
+    };
+
+    function updateUIForStoryEditorMode() { 
+        editorDiv.style.display = 'none'; 
+        storyJsonEditor.style.display = 'none'; 
+        
+        cardFilter.style.display = 'block';
+        cardSort.style.display = 'block';
+        sidebarSelectAllContainer.style.display = 'block';
+        if (cardListHeaderForSidebar) cardListHeaderForSidebar.style.display = 'grid';
+        cardListDiv.style.display = 'block'; 
+        jsonTreeView.style.display = 'none'; 
+        batchActionsDiv.style.display = 'flex'; 
     }
 
+    function updateUIForCardEditorMode() {
+        editorDiv.style.display = 'flex'; 
+        editorDiv.style.flexDirection = 'column'; 
+        storyJsonEditor.style.display = 'none'; 
+        
+        cardFilter.style.display = 'block';
+        cardSort.style.display = 'block';
+        sidebarSelectAllContainer.style.display = 'block';
+        if (cardListHeaderForSidebar) cardListHeaderForSidebar.style.display = 'grid';
+        cardListDiv.style.display = 'block';
+        jsonTreeView.style.display = 'none';
+        batchActionsDiv.style.display = 'flex';
+        cardCountEl.textContent = `Total Cards: ${cards.length} (Showing: ${getVisibleCardsCount()})`;
+    }
+    
+    viewStoryBtn.onclick = () => {
+        toggleViewStoryOrCards();
+    };
 
-    // --- Workspace Card Functions ---
+    function toggleViewStoryOrCards() {
+        if (currentStoryView === 'cards') {
+            currentStoryView = 'story';
+            viewStoryBtn.textContent = 'View Cards';
+            editorDiv.style.display = 'none'; 
+            storyJsonEditor.style.display = 'block'; 
+            storyJsonEditor.value = importedStoryData ? "Click an item in the tree (sidebar) to view its value, or switch to 'View Cards' to see story cards." : "Import a story to see its content.";
+
+            cardFilter.style.display = 'none';
+            cardSort.style.display = 'none';
+            sidebarSelectAllContainer.style.display = 'none';
+            if (cardListHeaderForSidebar) cardListHeaderForSidebar.style.display = 'none';
+            cardListDiv.style.display = 'none'; 
+            batchActionsDiv.style.display = 'none'; 
+
+            jsonTreeView.style.display = 'block'; 
+            renderJsonTreeView(importedStoryData);
+
+        } else { 
+            currentStoryView = 'cards';
+            viewStoryBtn.textContent = 'View Story';
+            editorDiv.style.display = 'none'; 
+            storyJsonEditor.style.display = 'none'; 
+
+            cardFilter.style.display = 'block';
+            cardSort.style.display = 'block';
+            sidebarSelectAllContainer.style.display = 'block';
+            if (cardListHeaderForSidebar) cardListHeaderForSidebar.style.display = 'grid';
+            cardListDiv.style.display = 'block'; 
+            batchActionsDiv.style.display = 'flex'; 
+            
+            jsonTreeView.style.display = 'none'; 
+            renderSidebar(); 
+        }
+    }
+
+    function renderJsonTreeView(jsonData) {
+        jsonTreeView.innerHTML = ''; 
+        if (jsonData) {
+            const rootKeyName = jsonData?.data?.scenario?.title || jsonData?.data?.adventure?.title || "Story Data";
+            const tree = createJsonTreeElement(jsonData, rootKeyName, true, '');
+            jsonTreeView.appendChild(tree);
+        } else {
+            jsonTreeView.textContent = "No story data loaded.";
+        }
+    }
+    
+    function createJsonTreeElement(data, keyName = null, isInitialCall = true, currentPath = '') {
+        const item = document.createElement('div');
+        item.className = 'json-tree-item';
+    
+        const keySpan = document.createElement('span');
+        keySpan.className = 'json-key';
+        keySpan.textContent = `${keyName}: `;
+        item.appendChild(keySpan);
+        
+        let childrenContainer; 
+    
+        keySpan.addEventListener('click', (e) => {
+            storyJsonEditor.value = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            storyJsonEditor.scrollTop = 0;
+        });
+    
+        if (typeof data === 'object' && data !== null) {
+            item.classList.add('collapsible');
+            childrenContainer = document.createElement('div'); 
+            childrenContainer.className = 'json-children';
+            
+            let expandThisLevel = false;
+            if (isInitialCall) { 
+                expandThisLevel = true;
+            } else if (currentPath === '' && keyName === 'data') { 
+                expandThisLevel = true;
+            } else if (currentPath === 'data' && (keyName === 'scenario' || keyName === 'adventure')) { 
+                expandThisLevel = true;
+            }
+    
+            childrenContainer.style.display = expandThisLevel ? 'block' : 'none'; 
+            if(expandThisLevel) item.classList.add('expanded');
+    
+            const newPathForChildren = isInitialCall ? '' : (currentPath ? currentPath + '.' + keyName : keyName);
+    
+            for (const key in data) {
+                if (Object.prototype.hasOwnProperty.call(data, key)) {
+                    childrenContainer.appendChild(createJsonTreeElement(data[key], key, false, newPathForChildren));
+                }
+            }
+            item.appendChild(childrenContainer);
+    
+            let pressHoldTimer = null;
+            let pressHoldStartX, pressHoldStartY;
+    
+            const toggleAction = () => {
+                item.classList.toggle('expanded');
+                childrenContainer.style.display = item.classList.contains('expanded') ? 'block' : 'none';
+            };
+    
+            keySpan.addEventListener('dblclick', (e) => { 
+                if (e.pointerType === 'mouse' || typeof e.pointerType === 'undefined') {
+                    toggleAction();
+                    e.stopPropagation(); 
+                }
+            });
+    
+            keySpan.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'touch') { 
+                    pressHoldStartX = e.clientX;
+                    pressHoldStartY = e.clientY;
+                    clearTimeout(pressHoldTimer); 
+                    pressHoldTimer = setTimeout(() => {
+                        toggleAction();
+                    }, 700); 
+                }
+            });
+    
+            keySpan.addEventListener('pointermove', (e) => {
+                if (e.pointerType === 'touch' && pressHoldTimer) {
+                    if (Math.abs(e.clientX - pressHoldStartX) > 10 || Math.abs(e.clientY - pressHoldStartY) > 10) {
+                        clearTimeout(pressHoldTimer);
+                    }
+                }
+            });
+    
+            keySpan.addEventListener('pointerup', (e) => {
+                if (e.pointerType === 'touch') {
+                    clearTimeout(pressHoldTimer);
+                }
+            });
+    
+        } else {
+            const valueSpanContainer = document.createElement('span'); 
+            valueSpanContainer.className = 'json-value-container';
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'json-value';
+            let displayValue = String(data);
+    
+            if (typeof data === 'string') {
+                displayValue = `"${data}"`; 
+                if (data.length > 50) { 
+                    valueSpan.textContent = `"${data.substring(0, 50)}..."`;
+                    valueSpan.classList.add('json-placeholder');
+                } else {
+                     valueSpan.textContent = displayValue;
+                }
+            } else if (typeof data === 'number') {
+                valueSpan.classList.add('number');
+                 valueSpan.textContent = displayValue;
+            } else if (typeof data === 'boolean') {
+                valueSpan.classList.add('boolean');
+                 valueSpan.textContent = displayValue;
+            } else if (data === null) {
+                valueSpan.classList.add('null');
+                 valueSpan.textContent = 'null';
+            } else {
+                 valueSpan.textContent = displayValue;
+            }
+            valueSpanContainer.appendChild(valueSpan);
+            item.appendChild(valueSpanContainer);
+        }
+        return item;
+    }
+
     document.getElementById('importBtn').onclick = () => fileInput.click();
-    document.getElementById('exportBtn').onclick = exportJSON; // Workspace export
+    document.getElementById('exportBtn').onclick = () => {
+        if (currentEditorMode === 'cardEditor') {
+            exportJSON();
+        } else if (currentEditorMode === 'storyEditor') {
+            if (exportBtn.classList.contains('disabled')) {
+                 alert("Export Story is disabled. No story loaded or functionality not yet implemented for full story export.");
+            } else {
+                if (importedStoryData) {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(importedStoryData, null, 2));
+                    const dlAnchor = document.createElement('a');
+                    dlAnchor.setAttribute("href", dataStr);
+                    dlAnchor.setAttribute("download", currentFileName || 'exported_story.json');
+                    dlAnchor.click();
+                    alert("Story data exported successfully.");
+                } else {
+                    alert("No story data to export.");
+                }
+            }
+        }
+    };
+
     fileInput.onchange = e => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = ev => {
             try {
-                const importedData = JSON.parse(ev.target.result);
-                if (!Array.isArray(importedData)) {
-                    alert("Invalid JSON file: Data is not an array of cards.");
-                    return;
-                }
-                const existingCardsCount = cards.length;
-                const newCards = importedData.map((card, index) => ({
-                    ...card,
-                    originalIndex: existingCardsCount + index // Maintain unique originalIndex for workspace
-                }));
-                cards = cards.concat(newCards);
+                const jsonData = JSON.parse(ev.target.result);
                 currentFileName = file.name;
-                if (editorCardSource === 'workspace' && currentCardIndex !==null && currentCardIndex >= existingCardsCount) {
-                    // If the currently edited card was one of the newly imported ones, its index might have shifted
+
+                if (currentEditorMode === 'cardEditor') {
+                    if (!Array.isArray(jsonData)) {
+                        alert("Invalid JSON file for Card Editor: Data is not an array of cards.");
+                        return;
+                    }
+                    const existingCardsCount = cards.length;
+                    const newCards = jsonData.map((card, index) => ({
+                        ...card,
+                        originalIndex: existingCardsCount + index 
+                    }));
+                    cards = cards.concat(newCards);
+                    clearEditorAndState(); 
+                    renderSidebar();
+                    alert(`Cards from "${file.name}" appended to workspace. Total: ${cards.length}.`);
+
+                } else if (currentEditorMode === 'storyEditor') {
+                    importedStoryData = jsonData; 
+                    let storyCardsToImport = [];
+                    
+                    const extractCardsAndId = (obj) => {
+                        let sCards = []; let sId = null;
+                        if (obj && obj.storyCards && Array.isArray(obj.storyCards)) {
+                            sCards = obj.storyCards; sId = obj.id || obj.shortId || null;
+                        } else if (obj && obj.details && obj.details.storyCards && Array.isArray(obj.details.storyCards)) {
+                            sCards = obj.details.storyCards; sId = obj.id || obj.shortId || (obj.details.scenarioId || null);
+                        }
+                        return { cards: sCards, id: sId ? String(sId) : null };
+                    };
+                    
+                    let potentialCardSets = [];
+                    if (jsonData.data) { 
+                        if (jsonData.data.scenario) potentialCardSets.push(extractCardsAndId(jsonData.data.scenario));
+                        if (jsonData.data.adventure) potentialCardSets.push(extractCardsAndId(jsonData.data.adventure));
+                    } else if (Array.isArray(jsonData)) { 
+                        jsonData.forEach(item => potentialCardSets.push(extractCardsAndId(item)));
+                    } else { 
+                        potentialCardSets.push(extractCardsAndId(jsonData));
+                    }
+
+                    potentialCardSets = potentialCardSets.filter(set => set.cards.length > 0 && set.id !== null);
+
+                    if (potentialCardSets.length > 0) {
+                        potentialCardSets.sort((a, b) => {
+                            const idA = parseInt(a.id.replace(/[^0-9]/g, ''), 10); 
+                            const idB = parseInt(b.id.replace(/[^0-9]/g, ''), 10);
+                            if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
+                            return b.id.localeCompare(a.id); 
+                        });
+                        storyCardsToImport = potentialCardSets[0].cards; 
+                        console.log("Importing story cards from ID:", potentialCardSets[0].id);
+                    } else {
+                         if (Array.isArray(jsonData) && jsonData.every(item => typeof item.title !== 'undefined' && (typeof item.value !== 'undefined' || typeof item.entry !== 'undefined'))) {
+                            storyCardsToImport = jsonData;
+                         } else if (jsonData.storyCards && Array.isArray(jsonData.storyCards)) {
+                             storyCardsToImport = jsonData.storyCards;
+                         }
+                    }
+
+                    if (storyCardsToImport.length > 0) {
+                        cards = storyCardsToImport.map((card, index) => ({
+                            title: card.title || "Untitled Card",
+                            keys: card.keys || "",
+                            value: card.value || card.entry || "", 
+                            type: card.type || "custom",
+                            description: card.description || "",
+                            useForCharacterCreation: card.useForCharacterCreation || false,
+                            originalIndex: index, 
+                            ...card 
+                        }));
+                        renderSidebar(); 
+                        alert(`Story "${currentFileName}" imported. ${cards.length} story cards loaded.`);
+                    } else {
+                        cards = [];
+                        renderSidebar();
+                        alert(`Story "${currentFileName}" imported, but no story cards found.`);
+                    }
+                    
+                    if (currentStoryView === 'story') {
+                        renderJsonTreeView(importedStoryData);
+                        storyJsonEditor.value = "Click an item in the tree (sidebar) to view its value, or switch to 'View Cards' to see story cards.";
+                    }
+                    exportBtn.classList.remove('disabled'); 
                 }
-                clearEditorAndState(); 
-                renderSidebar();
-                alert(`Cards from "${file.name}" appended to workspace. Total workspace cards: ${cards.length}.`);
             } catch (error) {
-                console.error("Error importing cards:", error);
-                alert("Invalid JSON file or error during import.");
+                console.error("Error importing file:", error);
+                alert("Invalid JSON file or error during import: " + error.message);
+                importedStoryData = null; cards = [];
+                renderSidebar();
+                if(currentStoryView === 'story') renderJsonTreeView(null);
             } finally {
                 fileInput.value = ''; 
             }
@@ -752,30 +1103,25 @@
     };
 
     function handleEditorChange() {
-        let currentCardIdentifier = null;
-        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
-            currentCardIdentifier = editorWorkspaceIndex;
-        } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
-            currentCardIdentifier = editorCardDbId; 
-        }
-
-        if (editorCardSource) { 
-            unsavedChangesMessage.textContent = "Unsaved Changes";
-            cancelChangesBtn.style.display = 'block';
+        if (currentEditorMode === 'cardEditor' || (currentEditorMode === 'storyEditor' && currentStoryView === 'cards')) {
             if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
                 unsavedChangesMap.set(editorWorkspaceIndex, getEditorData());
+                unsavedChangesMessage.textContent = "Unsaved Changes";
+                cancelChangesBtn.style.display = 'block';
                 renderSidebar(); 
-            } else if (editorCardSource === 'collection') {
-                renderCollectionSidebar(); 
-            }
-        } else { 
-            const editorData = getEditorData();
-            if (editorData.title || editorData.value || editorData.keys || editorData.description) {
-                 unsavedChangesMessage.textContent = "Unsaved Changes (New Card)";
-                 cancelChangesBtn.style.display = 'block';
-            } else { 
-                 unsavedChangesMessage.textContent = "";
-                 cancelChangesBtn.style.display = 'none';
+            } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
+                unsavedChangesMessage.textContent = "Unsaved Changes"; 
+                cancelChangesBtn.style.display = 'block';
+                renderCollectionSidebar();
+            } else if (!editorCardSource) { 
+                 const editorData = getEditorData();
+                if (editorData.title || editorData.value || editorData.keys || editorData.description) {
+                    unsavedChangesMessage.textContent = "Unsaved Changes (New Card)";
+                    cancelChangesBtn.style.display = 'block';
+                } else { 
+                    unsavedChangesMessage.textContent = "";
+                    cancelChangesBtn.style.display = 'none';
+                }
             }
         }
     }
@@ -795,45 +1141,55 @@
     });
     editCustomType.addEventListener('input', handleEditorChange);
 
-    function exportJSON() { // Exports WORKSPACE cards
+    function exportJSON() { 
         if (unsavedChangesMap.size > 0) {
-            if (confirm("Workspace has unsaved changes. Exporting will include these changes in the exported file. Continue?")) {
+            if (confirm("Workspace has unsaved changes. Exporting will include these changes. Continue?")) {
                 unsavedChangesMap.forEach((changes, index) => {
                     if (cards[index]) Object.assign(cards[index], changes);
                 });
                 unsavedChangesMap.clear(); 
                 if (sidebar.style.display === 'flex') renderSidebar(); 
             } else {
-                alert("Export cancelled.");
-                return;
+                alert("Export cancelled."); return;
             }
         }
         const cardsToExport = cards.map(card => {
-            const { originalIndex, id, ...rest } = card;
+            const { originalIndex, id, ...rest } = card; 
             return rest;
         });
-        const sortBy = cardSort.value;
+        const sortByVal = cardSort.value;
         const sortedCardsToExport = [...cardsToExport];
-        if (sortBy === 'title') sortedCardsToExport.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-        else if (sortBy === 'type') sortedCardsToExport.sort((a, b) => (a.type || "").localeCompare(b.type || ""));
-        else if (sortBy === 'length') sortedCardsToExport.sort((a, b) => (b.value || "").length - (a.value || "").length);
+        if (sortByVal === 'title') sortedCardsToExport.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        else if (sortByVal === 'type') sortedCardsToExport.sort((a, b) => (a.type || "").localeCompare(b.type || ""));
+        else if (sortByVal === 'length') sortedCardsToExport.sort((a, b) => (b.value || "").length - (a.value || "").length);
         
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sortedCardsToExport, null, 2));
         const dlAnchor = document.createElement('a');
         dlAnchor.setAttribute("href", dataStr);
         dlAnchor.setAttribute("download", currentFileName || 'story_cards.json');
         dlAnchor.click();
-        alert("Workspace cards exported successfully.");
+        alert("Workspace cards exported.");
+    }
+
+    function getVisibleCardsCount() { 
+        const filterText = cardFilter.value.toLowerCase();
+        if (!filterText) return cards.length;
+        return cards.filter(card => {
+            const title = card.title?.toLowerCase() || "";
+            const type = card.type?.toLowerCase() || "";
+            const value = card.value?.toLowerCase() || "";
+            return title.includes(filterText) || type.includes(filterText) || value.includes(filterText);
+        }).length;
     }
 
     function renderSidebar() { 
         const filterText = cardFilter.value.toLowerCase();
-        const sortBy = cardSort.value;
+        const sortByVal = cardSort.value;
         let visibleCardsSource = cards.map((card, index) => ({ ...card, originalArrayIndexInCards: index }));
 
         if (filterText) {
             visibleCardsSource = visibleCardsSource.filter(cardData => {
-                const card = cards[cardData.originalArrayIndexInCards];
+                const card = cards[cardData.originalArrayIndexInCards]; 
                 const title = card.title?.toLowerCase() || "";
                 const type = card.type?.toLowerCase() || "";
                 const value = card.value?.toLowerCase() || "";
@@ -841,78 +1197,83 @@
             });
         }
 
-        if (sortBy === 'title') visibleCardsSource.sort((a, b) => (cards[a.originalArrayIndexInCards].title || "").localeCompare(cards[b.originalArrayIndexInCards].title || ""));
-        else if (sortBy === 'type') visibleCardsSource.sort((a, b) => (cards[a.originalArrayIndexInCards].type || "").localeCompare(cards[b.originalArrayIndexInCards].type || ""));
-        else if (sortBy === 'length') visibleCardsSource.sort((a, b) => (cards[b.originalArrayIndexInCards].value || "").length - (cards[a.originalArrayIndexInCards].value || "").length);
-        else if (sortBy === 'default') {
+        if (sortByVal === 'title') visibleCardsSource.sort((a, b) => (cards[a.originalArrayIndexInCards].title || "").localeCompare(cards[b.originalArrayIndexInCards].title || ""));
+        else if (sortByVal === 'type') visibleCardsSource.sort((a, b) => (cards[a.originalArrayIndexInCards].type || "").localeCompare(cards[b.originalArrayIndexInCards].type || ""));
+        else if (sortByVal === 'length') visibleCardsSource.sort((a, b) => (cards[b.originalArrayIndexInCards].value || "").length - (cards[a.originalArrayIndexInCards].value || "").length);
+        else if (sortByVal === 'default') {
              visibleCardsSource.sort((a,b) => (cards[a.originalArrayIndexInCards].originalIndex || 0) - (cards[b.originalArrayIndexInCards].originalIndex || 0));
         }
-
 
         cardListDiv.innerHTML = '';
         visibleCardsSource.forEach(cardData => {
             const originalCardIndex = cardData.originalArrayIndexInCards;
-            const card = cards[originalCardIndex];
+            const card = cards[originalCardIndex]; 
 
-            const div = document.createElement('div');
-            div.className = 'cardItem';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.dataset.index = originalCardIndex;
+            const div = document.createElement('div'); div.className = 'cardItem';
+            const checkbox = document.createElement('input'); checkbox.type = 'checkbox';
+            checkbox.dataset.index = originalCardIndex; 
             checkbox.checked = selectedCardIndexes.has(originalCardIndex);
             checkbox.onchange = () => {
                 if (checkbox.checked) selectedCardIndexes.add(originalCardIndex);
                 else selectedCardIndexes.delete(originalCardIndex);
             };
-            const row = document.createElement('div');
-            row.className = 'cardRow';
-            row.onclick = () => editCard(originalCardIndex);
-
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'cardTitle';
+            const row = document.createElement('div'); row.className = 'cardRow';
+            row.onclick = () => {
+                if (currentEditorMode === 'cardEditor' || (currentEditorMode === 'storyEditor' && currentStoryView === 'cards')) {
+                    editCard(originalCardIndex);
+                }
+            };
+            const titleSpan = document.createElement('span'); titleSpan.className = 'cardTitle';
             titleSpan.textContent = card.title || "Untitled";
-            if (unsavedChangesMap.has(originalCardIndex)) titleSpan.style.color = 'red';
+            if (unsavedChangesMap.has(originalCardIndex)) titleSpan.style.color = 'orange'; 
             if (editorCardSource === 'workspace' && editorWorkspaceIndex === originalCardIndex) {
                 titleSpan.classList.add('active-card');
             }
-
             row.appendChild(titleSpan);
             if (document.getElementById('settingShowType').checked) {
-                const typeSpan = document.createElement('span');
-                typeSpan.className = 'cardType';
-                typeSpan.textContent = card.type || "";
-                row.appendChild(typeSpan);
+                const typeSpan = document.createElement('span'); typeSpan.className = 'cardType';
+                typeSpan.textContent = card.type || ""; row.appendChild(typeSpan);
             }
             if (document.getElementById('settingShowChars').checked) {
-                const charsSpan = document.createElement('span');
-                charsSpan.className = 'cardLength';
-                charsSpan.textContent = (card.value || "").length;
-                row.appendChild(charsSpan);
+                const charsSpan = document.createElement('span'); charsSpan.className = 'cardLength';
+                charsSpan.textContent = (card.value || "").length; row.appendChild(charsSpan);
             }
-            div.appendChild(checkbox);
-            div.appendChild(row);
-            cardListDiv.appendChild(div);
+            div.appendChild(checkbox); div.appendChild(row); cardListDiv.appendChild(div);
         });
-        cardCount.textContent = `Total Cards: ${cards.length} (Showing: ${visibleCardsSource.length})`;
-        typeHeader.style.display = document.getElementById('settingShowType').checked ? 'inline-block' : 'none';
-        charsHeader.style.display = document.getElementById('settingShowChars').checked ? 'inline-block' : 'none';
+
+        if (currentEditorMode === 'cardEditor') {
+            cardCountEl.textContent = `Total Cards: ${cards.length} (Showing: ${visibleCardsSource.length})`;
+        } else if (currentEditorMode === 'storyEditor') {
+            cardCountEl.textContent = `Total Cards: ${cards.length} (${visibleCardsSource.length})`; 
+        }
+        
+        if (typeHeader) typeHeader.style.display = document.getElementById('settingShowType').checked ? 'inline-block' : 'none';
+        if (charsHeader) charsHeader.style.display = document.getElementById('settingShowChars').checked ? 'inline-block' : 'none';
     }
 
     selectAllBox.addEventListener('change', (e) => {
         const checkboxes = document.querySelectorAll('#cardList input[type="checkbox"]');
         checkboxes.forEach(cb => {
             cb.checked = e.target.checked;
-            const idx = parseInt(cb.dataset.index);
+            const idx = parseInt(cb.dataset.index); 
             if (e.target.checked) selectedCardIndexes.add(idx);
             else selectedCardIndexes.delete(idx);
         });
     });
 
     function editCard(index) { 
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Card editing is not available in 'View Story' mode. Switch to 'View Cards'.");
+            return;
+        }
+        
+        editorDiv.style.display = 'flex'; 
+        editorDiv.style.flexDirection = 'column'; 
+        storyJsonEditor.style.display = 'none'; 
+
         editorCardSource = 'workspace';
         editorWorkspaceIndex = index; 
         editorCardDbId = null;       
-
         currentCardIndex = index; 
 
         const cardToDisplayInEditor = { ...cards[index] }; 
@@ -937,12 +1298,10 @@
         const options = Array.from(editType.options).map(opt => opt.value);
         if (options.includes(cardToDisplayInEditor.type)) {
             editType.value = cardToDisplayInEditor.type;
-            editCustomType.style.display = 'none';
-            editCustomType.value = '';
+            editCustomType.style.display = 'none'; editCustomType.value = '';
         } else {
             editType.value = 'custom';
-            editCustomType.style.display = 'block';
-            editCustomType.value = cardToDisplayInEditor.type || "";
+            editCustomType.style.display = 'block'; editCustomType.value = cardToDisplayInEditor.type || "";
         }
         renderSidebar(); 
         if (collectionSidebar.style.display === 'flex') renderCollectionSidebar(); 
@@ -950,94 +1309,76 @@
 
     document.getElementById('cardListToggle').onclick = () => {
         const mainSidebarVisible = sidebar.style.display === 'flex';
-        if (mainSidebarVisible) {
-            sidebar.style.display = 'none';
-        } else {
+        if (mainSidebarVisible) sidebar.style.display = 'none';
+        else {
             sidebar.style.display = 'flex';
-            renderSidebar(); 
+            if (currentEditorMode === 'cardEditor' || (currentEditorMode === 'storyEditor' && currentStoryView === 'cards')) renderSidebar(); 
+            else if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') renderJsonTreeView(importedStoryData); 
         }
         updateMobileLayout(); 
     };
 
     async function saveCard() {
-        const editorData = getEditorData();
-        if (!editorData.title && !editorData.value && !editorData.keys && !editorData.description) { 
-            alert("Cannot save an essentially empty card.");
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Cannot save in 'View Story' mode. Switch to 'View Cards' to save individual cards.");
             return;
         }
-
+        const editorData = getEditorData();
+        if (!editorData.title && !editorData.value && !editorData.keys && !editorData.description) { 
+            alert("Cannot save an empty card."); return;
+        }
         if (editorCardSource === 'workspace') {
             if (editorWorkspaceIndex === null) { 
-                editorData.originalIndex = cards.length;
+                editorData.originalIndex = cards.length; 
                 cards.push(editorData);
                 editorWorkspaceIndex = cards.length - 1; 
                 currentCardIndex = editorWorkspaceIndex; 
                 originalCardData = { ...editorData };     
                 unsavedChangesMap.delete(editorWorkspaceIndex); 
-                alert("New workspace card saved.");
+                alert("New card saved to workspace.");
             } else { 
                 Object.assign(cards[editorWorkspaceIndex], editorData);
                 unsavedChangesMap.delete(editorWorkspaceIndex);
                 originalCardData = { ...cards[editorWorkspaceIndex] }; 
-                alert("Workspace card saved successfully.");
+                alert("Workspace card saved.");
             }
-            renderSidebar();
+            renderSidebar(); 
         } else if (editorCardSource === 'collection') {
-            if (editorCardDbId === null) {
-                alert("Error: No collection card ID to save to. This shouldn't happen.");
-                return;
-            }
+            if (editorCardDbId === null) { alert("Error: No collection card ID."); return; }
             try {
                 const cardToUpdateInDB = { ...originalCardData, ...editorData, id: editorCardDbId };
                 await db.collection.put(cardToUpdateInDB);
                 originalCardData = { ...cardToUpdateInDB }; 
-                alert("Collection card saved successfully.");
+                alert("Collection card saved.");
                 await loadCollectionCards(); 
-            } catch (error) {
-                console.error("Error saving collection card:", error);
-                alert("Failed to save collection card.");
-                return;
-            }
+            } catch (error) { console.error("Error saving collection card:", error); alert("Failed to save collection card."); return; }
         } else { 
-            alert("Saving a new card. It will be saved to the workspace.");
-            editorCardSource = 'workspace'; 
-            editorWorkspaceIndex = null;    
-            await saveCard(); 
-            return; 
+            alert("Saving new card to workspace.");
+            editorCardSource = 'workspace'; editorWorkspaceIndex = null;    
+            await saveCard(); return; 
         }
-
-        unsavedChangesMessage.textContent = "";
-        cancelChangesBtn.style.display = 'none';
-
-        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
-            editCard(editorWorkspaceIndex);
-        } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
-            await editCollectionCard(editorCardDbId);
-        }
+        unsavedChangesMessage.textContent = ""; cancelChangesBtn.style.display = 'none';
+        if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) editCard(editorWorkspaceIndex);
+        else if (editorCardSource === 'collection' && editorCardDbId !== null) await editCollectionCard(editorCardDbId);
     }
     window.saveCard = saveCard;
 
     async function saveAsNewCard() {
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Action not available in 'View Story' mode."); return;
+        }
         const newCardDataFromEditor = getEditorData();
         if (!newCardDataFromEditor.title && !newCardDataFromEditor.value && !newCardDataFromEditor.keys && !newCardDataFromEditor.description) {
-            alert("Cannot save an essentially empty card as new.");
-            return;
+            alert("Cannot save an empty card as new."); return;
         }
-        newCardDataFromEditor.originalIndex = cards.length;
+        newCardDataFromEditor.originalIndex = cards.length; 
         cards.push(newCardDataFromEditor);
         const newWorkspaceCardIndex = cards.length - 1;
-
-        editorCardSource = 'workspace';
-        editorWorkspaceIndex = newWorkspaceCardIndex;
-        currentCardIndex = newWorkspaceCardIndex; 
-        editorCardDbId = null; 
-
+        editorCardSource = 'workspace'; editorWorkspaceIndex = newWorkspaceCardIndex;
+        currentCardIndex = newWorkspaceCardIndex; editorCardDbId = null; 
         originalCardData = { ...cards[editorWorkspaceIndex] }; 
         unsavedChangesMap.delete(editorWorkspaceIndex);       
-
-        unsavedChangesMessage.textContent = ""; 
-        cancelChangesBtn.style.display = 'none';
-
+        unsavedChangesMessage.textContent = ""; cancelChangesBtn.style.display = 'none';
         renderSidebar(); 
         if (collectionSidebar.style.display === 'flex') renderCollectionSidebar(); 
         editCard(editorWorkspaceIndex); 
@@ -1045,89 +1386,65 @@
     }
     window.saveAsNewCard = saveAsNewCard;
 
-
     async function deleteCurrentCard() {
-        if (!editorCardSource) {
-            alert("No card loaded in the editor to delete.");
-            if (editTitle.value || editKeys.value || editDescription.value || valueEditor.value) {
-                if(confirm("The editor has unsaved content for a new card. Clear editor?")) {
-                    clearEditorAndState();
-                }
-            }
-            return;
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Action not available in 'View Story' mode."); return;
         }
-
+        if (!editorCardSource) {
+            alert("No card loaded to delete.");
+            if (editTitle.value || editKeys.value || editDescription.value || valueEditor.value) {
+                if(confirm("Editor has unsaved content for a new card. Clear editor?")) clearEditorAndState();
+            } return;
+        }
         if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
-            if (confirm(`Delete "${cards[editorWorkspaceIndex].title || 'Untitled Card'}" from workspace?`)) {
+            if (confirm(`Delete "${cards[editorWorkspaceIndex].title || 'Untitled'}" from workspace?`)) {
                 cards.splice(editorWorkspaceIndex, 1);
                 unsavedChangesMap.delete(editorWorkspaceIndex);
                 const newUnsavedMap = new Map();
                 unsavedChangesMap.forEach((val, key) => { if (key > editorWorkspaceIndex) newUnsavedMap.set(key - 1, val); else if (key < editorWorkspaceIndex) newUnsavedMap.set(key, val);});
                 unsavedChangesMap = newUnsavedMap;
-
                 const newSelected = new Set();
                 selectedCardIndexes.forEach(idx => { if (idx > editorWorkspaceIndex) newSelected.add(idx - 1); else if (idx < editorWorkspaceIndex) newSelected.add(idx);});
                 selectedCardIndexes.clear(); newSelected.forEach(idx => selectedCardIndexes.add(idx));
-
-                clearEditorAndState(); 
-                renderSidebar();
-                alert("Workspace card deleted.");
+                clearEditorAndState(); renderSidebar(); alert("Workspace card deleted.");
             }
         } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
-            const cardTitleInEditor = originalCardData ? originalCardData.title : (editTitle.value || "Untitled Card");
-            if (confirm(`Delete "${cardTitleInEditor}" from collection (this is permanent)?`)) {
+            const cardTitleInEditor = originalCardData ? originalCardData.title : (editTitle.value || "Untitled");
+            if (confirm(`Delete "${cardTitleInEditor}" from collection (permanent)?`)) {
                 try {
                     await db.collection.delete(editorCardDbId);
-                    clearEditorAndState();
-                    await loadCollectionCards();
-                    alert("Collection card deleted.");
-                } catch (error) {
-                    console.error("Error deleting from collection:", error);
-                    alert("Failed to delete card from collection.");
-                }
+                    clearEditorAndState(); await loadCollectionCards(); alert("Collection card deleted.");
+                } catch (error) { console.error("Error deleting from collection:", error); alert("Failed to delete from collection.");}
             }
         }
     }
     window.deleteCurrentCard = deleteCurrentCard;
 
     function clearEditorAndState() { 
-        editTitle.value = '';
-        editKeys.value = '';
-        editDescription.value = '';
-        valueEditor.value = '';
-        editUseForCC.checked = false;
-        editType.value = 'character'; 
-        editCustomType.value = '';
-        editCustomType.style.display = 'none';
+        editTitle.value = ''; editKeys.value = ''; editDescription.value = ''; valueEditor.value = '';
+        editUseForCC.checked = false; editType.value = 'character'; 
+        editCustomType.value = ''; editCustomType.style.display = 'none';
         editorCharCount.textContent = "Character Count: 0";
-
-        unsavedChangesMessage.textContent = "";
-        cancelChangesBtn.style.display = 'none';
-
-        editorCardSource = null;
-        editorCardDbId = null;
-        editorWorkspaceIndex = null; 
-        currentCardIndex = null;     
-        originalCardData = null;
-
-        if (sidebar.style.display === 'flex') renderSidebar();
+        unsavedChangesMessage.textContent = ""; cancelChangesBtn.style.display = 'none';
+        editorCardSource = null; editorCardDbId = null; editorWorkspaceIndex = null; 
+        currentCardIndex = null; originalCardData = null;
+        if (sidebar.style.display === 'flex') {
+            if (currentEditorMode === 'cardEditor' || (currentEditorMode === 'storyEditor' && currentStoryView === 'cards')) renderSidebar();
+        }
         if (collectionSidebar.style.display === 'flex') renderCollectionSidebar();
     }
 
     function cancelChanges() {
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Action not available in 'View Story' mode."); return;
+        }
         if (!editorCardSource || !originalCardData) {
             if (editTitle.value || editKeys.value || editDescription.value || valueEditor.value) {
-                 if(confirm("Clear unsaved content for this new card?")) {
-                    clearEditorAndState();
-                 }
-            } else {
-                clearEditorAndState(); 
-            }
+                 if(confirm("Clear unsaved content for new card?")) clearEditorAndState();
+            } else clearEditorAndState(); 
             return;
         }
-
-        editTitle.value = originalCardData.title || "";
-        editKeys.value = originalCardData.keys || "";
+        editTitle.value = originalCardData.title || ""; editKeys.value = originalCardData.keys || "";
         editDescription.value = originalCardData.description || "";
         editUseForCC.checked = originalCardData.useForCharacterCreation || false;
         valueEditor.value = originalCardData.value || "";
@@ -1135,70 +1452,61 @@
         const options = Array.from(editType.options).map(opt => opt.value);
         if (options.includes(originalCardData.type)) {
             editType.value = originalCardData.type;
-            editCustomType.style.display = 'none';
-            editCustomType.value = '';
+            editCustomType.style.display = 'none'; editCustomType.value = '';
         } else {
             editType.value = 'custom';
-            editCustomType.style.display = 'block';
-            editCustomType.value = originalCardData.type || "";
+            editCustomType.style.display = 'block'; editCustomType.value = originalCardData.type || "";
         }
-
         if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
-            unsavedChangesMap.delete(editorWorkspaceIndex);
-            renderSidebar(); 
-        } else if (editorCardSource === 'collection' && editorCardDbId !== null) {
+            unsavedChangesMap.delete(editorWorkspaceIndex); renderSidebar(); 
+        } else if (editorCardSource === 'collection') { 
             renderCollectionSidebar(); 
         }
-
-        unsavedChangesMessage.textContent = "";
-        cancelChangesBtn.style.display = 'none';
+        unsavedChangesMessage.textContent = ""; cancelChangesBtn.style.display = 'none';
         alert("Changes cancelled.");
         if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) editCard(editorWorkspaceIndex);
         else if (editorCardSource === 'collection' && editorCardDbId !== null) editCollectionCard(editorCardDbId);
     }
     window.cancelChanges = cancelChanges;
 
-
     function deleteSelected() { 
-        if (selectedCardIndexes.size === 0) {
-            alert("No cards selected in workspace.");
-            return;
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Action not available in 'View Story' mode."); return;
         }
+        if (selectedCardIndexes.size === 0) { alert("No cards selected in workspace."); return; }
         if (confirm(`Delete ${selectedCardIndexes.size} selected card(s) from workspace?`)) {
-            const sortedIndexesToDelete = Array.from(selectedCardIndexes).sort((a, b) => b - a);
+            const sortedIndexesToDelete = Array.from(selectedCardIndexes).sort((a, b) => b - a); 
             let editorWasAffected = false;
-
             sortedIndexesToDelete.forEach(index => {
-                if (editorCardSource === 'workspace' && index === editorWorkspaceIndex) {
-                    editorWasAffected = true; 
-                }
+                if (editorCardSource === 'workspace' && index === editorWorkspaceIndex) editorWasAffected = true; 
                 cards.splice(index, 1);
-                unsavedChangesMap.delete(index);
+                unsavedChangesMap.delete(index); 
             });
-            if (editorWasAffected) {
-                clearEditorAndState();
-            } else if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
+            const newUnsavedMap = new Map();
+            unsavedChangesMap.forEach((val, oldKey) => {
+                let newKey = oldKey;
+                for (const deletedIdx of sortedIndexesToDelete) if (oldKey > deletedIdx) newKey--;
+                if (newKey >= 0 && !sortedIndexesToDelete.includes(oldKey) ) newUnsavedMap.set(newKey, val);
+            });
+            unsavedChangesMap = newUnsavedMap;
+            if (editorWasAffected) clearEditorAndState();
+            else if (editorCardSource === 'workspace' && editorWorkspaceIndex !== null) {
                 let shifts = 0;
-                sortedIndexesToDelete.forEach(deletedIdx => {
-                    if (editorWorkspaceIndex > deletedIdx) shifts++;
-                });
-                editorWorkspaceIndex -= shifts;
-                currentCardIndex = editorWorkspaceIndex; 
+                sortedIndexesToDelete.forEach(deletedIdx => { if (editorWorkspaceIndex > deletedIdx) shifts++; });
+                editorWorkspaceIndex -= shifts; currentCardIndex = editorWorkspaceIndex; 
             }
-            selectedCardIndexes.clear();
-            selectAllBox.checked = false;
-            renderSidebar();
-            alert(`${sortedIndexesToDelete.length} card(s) deleted from workspace.`);
+            selectedCardIndexes.clear(); selectAllBox.checked = false;
+            renderSidebar(); alert(`${sortedIndexesToDelete.length} card(s) deleted.`);
         }
     }
     window.deleteSelected = deleteSelected;
 
     function assignTypeSelected() { 
-        if (selectedCardIndexes.size === 0) {
-            alert("No cards selected in workspace.");
-            return;
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Action not available in 'View Story' mode."); return;
         }
-        const newAssignedType = prompt("Enter type to assign to selected workspace cards:"); 
+        if (selectedCardIndexes.size === 0) { alert("No cards selected in workspace."); return; }
+        const newAssignedType = prompt("Enter type for selected workspace cards:"); 
         if (newAssignedType && newAssignedType.trim() !== "") {
             let changedCount = 0;
             selectedCardIndexes.forEach(index => {
@@ -1207,203 +1515,137 @@
                     if (editorCardSource === 'workspace' && index === editorWorkspaceIndex) { 
                         originalCardData.type = newAssignedType.trim(); 
                         editCard(editorWorkspaceIndex); 
-                    }
-                    changedCount++;
+                    } changedCount++;
                 }
             });
-            if (changedCount > 0) {
-                alert(`Assigned type "${newAssignedType.trim()}" to ${changedCount} card(s) in workspace.`);
-                renderSidebar();
-            }
-        } else if (newAssignedType !== null) {
-            alert("Type cannot be empty.");
-        }
+            if (changedCount > 0) { alert(`Type "${newAssignedType.trim()}" assigned to ${changedCount} card(s).`); renderSidebar(); }
+        } else if (newAssignedType !== null) alert("Type cannot be empty.");
     }
     window.assignTypeSelected = assignTypeSelected;
 
     window.addSelectedWorkspaceCardsToCollection = async function() {
-        if (selectedCardIndexes.size === 0) {
-            alert("No cards selected in the workspace to add to the collection.");
-            return;
+        if (currentEditorMode === 'storyEditor' && currentStoryView === 'story') {
+            alert("Action not available in 'View Story' mode."); return;
         }
-        let addedCount = 0;
-        let cardTitlesAdded = [];
+        if (selectedCardIndexes.size === 0) { alert("No cards selected to add to collection."); return; }
+        let addedCount = 0; let cardTitlesAdded = [];
         const indexesToAdd = Array.from(selectedCardIndexes);
-
         for (const index of indexesToAdd) {
             if (cards[index]) {
-                const workspaceCardCopy = { ...cards[index] };
-                let cardToCollect;
+                const workspaceCardCopy = { ...cards[index] }; let cardToCollect;
                 if (unsavedChangesMap.has(index)) {
                     const changes = unsavedChangesMap.get(index);
-                    if(confirm(`Card "${workspaceCardCopy.title || 'Untitled'}" has unsaved changes in workspace. Add the version with these changes to collection? (Cancel to skip this card)`)){
+                    if(confirm(`Card "${workspaceCardCopy.title || 'Untitled'}" has unsaved changes. Add version with changes to collection? (Cancel to skip)`)){
                         cardToCollect = { ...workspaceCardCopy, ...changes };
-                    } else {
-                        continue; 
-                    }
-                } else {
-                    cardToCollect = workspaceCardCopy;
-                }
-                delete cardToCollect.id; 
-                await addCardToCollection(cardToCollect);
-                addedCount++;
-                cardTitlesAdded.push(cardToCollect.title || "Untitled");
+                    } else continue; 
+                } else cardToCollect = workspaceCardCopy;
+                delete cardToCollect.originalArrayIndexInCards; delete cardToCollect.id; 
+                await addCardToCollection(cardToCollect); 
+                addedCount++; cardTitlesAdded.push(cardToCollect.title || "Untitled");
             }
         }
         if (addedCount > 0) {
             alert(`Added ${addedCount} card(s) to collection: ${cardTitlesAdded.join(", ")}`);
-            if (collectionSidebar.style.display === 'flex') await loadCollectionCards();
-        } else if (indexesToAdd.length > 0) {
-             alert("No cards were added to collection (possibly all were skipped or cancelled).");
-        }
+            if (collectionSidebar.style.display === 'flex') await loadCollectionCards(); 
+        } else if (indexesToAdd.length > 0) alert("No cards added (all skipped/cancelled).");
     }
 
-
-    // --- Collection Card Functions (IndexedDB) ---
     async function loadCollectionCards() {
         try {
             collectionCards = await db.collection.orderBy('originalIndex').toArray(); 
             renderCollectionSidebar();
-        } catch (error) {
-            console.error("Error loading collection cards:", error);
-            alert("Could not load collection from database.");
-        }
+        } catch (error) { console.error("Error loading collection:", error); alert("Could not load collection."); }
     }
 
-    async function addCardToCollection(cardData) {
+    async function addCardToCollection(cardData) { 
         try {
-            const cardToAdd = { ...cardData };
-            delete cardToAdd.id; 
-
-            const lastCardInCollection = await db.collection.orderBy('originalIndex').last();
-            cardToAdd.originalIndex = (lastCardInCollection && typeof lastCardInCollection.originalIndex === 'number')
-                                      ? lastCardInCollection.originalIndex + 1
-                                      : 0;
+            const cardToAdd = { ...cardData }; delete cardToAdd.id; 
+            const lastCard = await db.collection.orderBy('originalIndex').last();
+            cardToAdd.originalIndex = (lastCard && typeof lastCard.originalIndex === 'number') ? lastCard.originalIndex + 1 : 0;
             await db.collection.add(cardToAdd);
-        } catch (error) {
-            console.error("Error adding card to collection DB:", error);
-            throw error; 
-        }
+        } catch (error) { console.error("Error adding to collection DB:", error); throw error; }
     }
 
     async function editCollectionCard(dbId) { 
+        if (currentEditorMode === 'storyEditor') {
+            alert("Edit collection cards in 'Card Editor' mode."); return;
+        }
         try {
-            const cardFromCollection = await db.collection.get(dbId);
-            if (!cardFromCollection) {
-                alert("Card not found in collection.");
-                return;
-            }
-
-            editorCardSource = 'collection';
-            editorCardDbId = dbId;
-            editorWorkspaceIndex = null; 
-            currentCardIndex = null;    
-
-            originalCardData = { ...cardFromCollection }; 
-            unsavedChangesMessage.textContent = "";
-            cancelChangesBtn.style.display = 'none';
-
-            editTitle.value = cardFromCollection.title || "";
-            editKeys.value = cardFromCollection.keys || "";
-            editDescription.value = cardFromCollection.description || "";
-            editUseForCC.checked = cardFromCollection.useForCharacterCreation || false;
-            valueEditor.value = cardFromCollection.value || "";
-            editorCharCount.textContent = `Character Count: ${(cardFromCollection.value || "").length}`;
+            const cardFromColl = await db.collection.get(dbId);
+            if (!cardFromColl) { alert("Card not found in collection."); return; }
+            editorDiv.style.display = 'flex'; editorDiv.style.flexDirection = 'column';
+            storyJsonEditor.style.display = 'none'; 
+            editorCardSource = 'collection'; editorCardDbId = dbId;
+            editorWorkspaceIndex = null; currentCardIndex = null;    
+            originalCardData = { ...cardFromColl }; 
+            unsavedChangesMessage.textContent = ""; cancelChangesBtn.style.display = 'none';
+            editTitle.value = cardFromColl.title || ""; editKeys.value = cardFromColl.keys || "";
+            editDescription.value = cardFromColl.description || "";
+            editUseForCC.checked = cardFromColl.useForCharacterCreation || false;
+            valueEditor.value = cardFromColl.value || "";
+            editorCharCount.textContent = `Character Count: ${(cardFromColl.value || "").length}`;
             const options = Array.from(editType.options).map(opt => opt.value);
-            if (options.includes(cardFromCollection.type)) {
-                editType.value = cardFromCollection.type;
-                editCustomType.style.display = 'none';
-                editCustomType.value = '';
+            if (options.includes(cardFromColl.type)) {
+                editType.value = cardFromColl.type;
+                editCustomType.style.display = 'none'; editCustomType.value = '';
             } else {
                 editType.value = 'custom';
-                editCustomType.style.display = 'block';
-                editCustomType.value = cardFromCollection.type || "";
+                editCustomType.style.display = 'block'; editCustomType.value = cardFromColl.type || "";
             }
             renderCollectionSidebar(); 
             if (sidebar.style.display === 'flex') renderSidebar(); 
-        } catch (error) {
-            console.error("Error loading collection card into editor:", error);
-            alert("Failed to load collection card.");
-        }
+        } catch (error) { console.error("Error loading collection card to editor:", error); alert("Failed to load collection card."); }
     }
     window.editCollectionCard = editCollectionCard;
 
-
     function renderCollectionSidebar() {
         const filterText = collectionCardFilter.value.toLowerCase();
-        const sortBy = collectionCardSort.value;
-        let visibleCollectionCardsSource = [...collectionCards];
-
+        const sortByVal = collectionCardSort.value;
+        let visibleCollCards = [...collectionCards]; 
         if (filterText) {
-            visibleCollectionCardsSource = visibleCollectionCardsSource.filter(card => {
-                const title = card.title?.toLowerCase() || "";
-                const type = card.type?.toLowerCase() || "";
+            visibleCollCards = visibleCollCards.filter(card => {
+                const title = card.title?.toLowerCase() || ""; const type = card.type?.toLowerCase() || "";
                 const value = card.value?.toLowerCase() || "";
                 return title.includes(filterText) || type.includes(filterText) || value.includes(filterText);
             });
         }
-
-        if (sortBy === 'title') visibleCollectionCardsSource.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-        else if (sortBy === 'type') visibleCollectionCardsSource.sort((a, b) => (a.type || "").localeCompare(b.type || ""));
-        else if (sortBy === 'length') visibleCollectionCardsSource.sort((a, b) => (b.value || "").length - (a.value || "").length);
-        else if (sortBy === 'default') {
-            visibleCollectionCardsSource.sort((a, b) => (a.originalIndex || 0) - (b.originalIndex || 0) || (a.id || 0) - (b.id || 0));
-        }
-
-
+        if (sortByVal === 'title') visibleCollCards.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        else if (sortByVal === 'type') visibleCollCards.sort((a, b) => (a.type || "").localeCompare(b.type || ""));
+        else if (sortByVal === 'length') visibleCollCards.sort((a, b) => (b.value || "").length - (a.value || "").length);
+        else if (sortByVal === 'default') visibleCollCards.sort((a, b) => (a.originalIndex || 0) - (b.originalIndex || 0) || (a.id || 0) - (b.id || 0));
+        
         collectionCardListDiv.innerHTML = '';
-        visibleCollectionCardsSource.forEach(card => {
-            const div = document.createElement('div');
-            div.className = 'cardItem';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.dataset.id = card.id;
+        visibleCollCards.forEach(card => {
+            const div = document.createElement('div'); div.className = 'cardItem';
+            const checkbox = document.createElement('input'); checkbox.type = 'checkbox';
+            checkbox.dataset.id = card.id; 
             checkbox.checked = selectedCollectionCardDBIds.has(card.id);
-            checkbox.onchange = () => {
-                if (checkbox.checked) selectedCollectionCardDBIds.add(card.id);
-                else selectedCollectionCardDBIds.delete(card.id);
-            };
-
-            const row = document.createElement('div');
-            row.className = 'cardRow';
-            row.onclick = () => editCollectionCard(card.id);
-
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'cardTitle';
+            checkbox.onchange = () => { if (checkbox.checked) selectedCollectionCardDBIds.add(card.id); else selectedCollectionCardDBIds.delete(card.id); };
+            const row = document.createElement('div'); row.className = 'cardRow';
+            row.onclick = () => { if (currentEditorMode === 'cardEditor') editCollectionCard(card.id); else alert("Switch to 'Card Editor' mode to edit collection cards."); };
+            const titleSpan = document.createElement('span'); titleSpan.className = 'cardTitle';
             titleSpan.textContent = card.title || "Untitled";
-            if (editorCardSource === 'collection' && editorCardDbId === card.id) {
-                titleSpan.classList.add('active-card');
-            }
+            if (editorCardSource === 'collection' && editorCardDbId === card.id) titleSpan.classList.add('active-card');
             row.appendChild(titleSpan);
             if (document.getElementById('settingShowType').checked) {
-                const typeSpan = document.createElement('span');
-                typeSpan.className = 'cardType';
-                typeSpan.textContent = card.type || "";
-                row.appendChild(typeSpan);
+                const typeSpan = document.createElement('span'); typeSpan.className = 'cardType';
+                typeSpan.textContent = card.type || ""; row.appendChild(typeSpan);
             }
             if (document.getElementById('settingShowChars').checked) {
-                const charsSpan = document.createElement('span');
-                charsSpan.className = 'cardLength';
-                charsSpan.textContent = (card.value || "").length;
-                row.appendChild(charsSpan);
+                const charsSpan = document.createElement('span'); charsSpan.className = 'cardLength';
+                charsSpan.textContent = (card.value || "").length; row.appendChild(charsSpan);
             }
-            div.appendChild(checkbox);
-            div.appendChild(row);
-            collectionCardListDiv.appendChild(div);
+            div.appendChild(checkbox); div.appendChild(row); collectionCardListDiv.appendChild(div);
         });
-        collectionCardCountEl.textContent = `Total Collection: ${collectionCards.length} (Showing: ${visibleCollectionCardsSource.length})`;
-        collectionTypeHeader.style.display = document.getElementById('settingShowType').checked ? 'inline-block' : 'none';
-        collectionCharsHeader.style.display = document.getElementById('settingShowChars').checked ? 'inline-block' : 'none';
+        collectionCardCountEl.textContent = `Total Collection: ${collectionCards.length} (Showing: ${visibleCollCards.length})`;
+        if(collectionTypeHeader) collectionTypeHeader.style.display = document.getElementById('settingShowType').checked ? 'inline-block' : 'none';
+        if(collectionCharsHeader) collectionCharsHeader.style.display = document.getElementById('settingShowChars').checked ? 'inline-block' : 'none';
     }
 
     collectionToggleBtn.onclick = () => {
-        const collSidebarVisible = collectionSidebar.style.display === 'flex';
-        if (collSidebarVisible) {
-            collectionSidebar.style.display = 'none';
-        } else {
-            collectionSidebar.style.display = 'flex';
-            loadCollectionCards(); 
-        }
+        const collVisible = collectionSidebar.style.display === 'flex';
+        if (collVisible) collectionSidebar.style.display = 'none';
+        else { collectionSidebar.style.display = 'flex'; loadCollectionCards(); }
         updateMobileLayout(); 
     };
     collectionCardFilter.addEventListener('input', renderCollectionSidebar);
@@ -1411,7 +1653,7 @@
     collectionSelectAllBox.addEventListener('change', (e) => {
         const checkboxes = document.querySelectorAll('#collectionCardList input[type="checkbox"]');
         checkboxes.forEach(cb => {
-            const card_id = parseInt(cb.dataset.id);
+            const card_id = parseInt(cb.dataset.id); 
             cb.checked = e.target.checked;
             if (e.target.checked) selectedCollectionCardDBIds.add(card_id);
             else selectedCollectionCardDBIds.delete(card_id);
@@ -1419,77 +1661,58 @@
     });
 
     window.deleteSelectedFromCollection = async function() {
-        if (selectedCollectionCardDBIds.size === 0) {
-            alert("No cards selected from collection to delete.");
-            return;
-        }
+        if (selectedCollectionCardDBIds.size === 0) { alert("No cards selected from collection to delete."); return; }
         if (confirm(`Permanently delete ${selectedCollectionCardDBIds.size} card(s) from collection?`)) {
             try {
                 let editorAffected = false;
-                Array.from(selectedCollectionCardDBIds).forEach(id => {
-                    if(editorCardSource === 'collection' && editorCardDbId === id) {
-                        editorAffected = true;
-                    }
-                });
-
+                Array.from(selectedCollectionCardDBIds).forEach(id => { if(editorCardSource === 'collection' && editorCardDbId === id) editorAffected = true; });
                 await db.collection.bulkDelete(Array.from(selectedCollectionCardDBIds));
-                selectedCollectionCardDBIds.clear();
-                collectionSelectAllBox.checked = false;
-
-                if(editorAffected) {
-                    clearEditorAndState();
-                }
+                selectedCollectionCardDBIds.clear(); collectionSelectAllBox.checked = false;
+                if(editorAffected) clearEditorAndState();
                 await loadCollectionCards(); 
                 alert("Selected card(s) deleted from collection.");
-            } catch (error) {
-                console.error("Error deleting from collection:", error);
-                alert("Failed to delete cards from collection.");
-            }
+            } catch (error) { console.error("Error deleting from collection:", error); alert("Failed to delete from collection."); }
         }
     }
 
     window.addSelectedToWorkspace = async function() {
-        if (selectedCollectionCardDBIds.size === 0) {
-            alert("No cards selected from collection.");
-            return;
+        if (currentEditorMode === 'storyEditor') {
+            if (!confirm("Replace current story cards with selected collection cards? This action cannot be undone for the current story cards list.")) return;
+             cards = []; 
         }
+        if (selectedCollectionCardDBIds.size === 0) { alert("No cards selected from collection."); return; }
         try {
             const cardsFromDb = await db.collection.bulkGet(Array.from(selectedCollectionCardDBIds));
             let addedCount = 0;
             cardsFromDb.forEach(collCard => {
                 if (collCard) {
                     const workspaceCard = { ...collCard };
-                    delete workspaceCard.id;
-                    delete workspaceCard.originalIndex; 
+                    delete workspaceCard.id; delete workspaceCard.originalIndex; 
                     workspaceCard.originalIndex = cards.length; 
-                    cards.push(workspaceCard);
-                    addedCount++;
+                    cards.push(workspaceCard); addedCount++;
                 }
             });
             if (addedCount > 0) {
-                if (sidebar.style.display === 'flex') renderSidebar();
-                alert(`Added ${addedCount} card(s) to workspace.`);
+                if (sidebar.style.display === 'flex') renderSidebar(); 
+                alert(`Added ${addedCount} card(s) to workspace/story.`);
             }
-        } catch (error) {
-            console.error("Error adding to workspace:", error);
-            alert("Failed to add cards to workspace.");
-        }
+        } catch (error) { console.error("Error adding to workspace:", error); alert("Failed to add cards."); }
     }
 
     window.importCollectionJSON = async function() {
-        if (confirm("Importing will OVERWRITE the current collection. Continue?")) {
+        if (currentEditorMode === 'storyEditor') {
+             alert("Collection management is for 'Card Editor' mode."); return;
+        }
+        if (confirm("Importing will OVERWRITE current collection. Continue?")) {
             collectionFileInput.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+                const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
                 reader.onload = async (ev) => {
                     try {
                         const importedData = JSON.parse(ev.target.result);
-                        if (!Array.isArray(importedData)) {
-                            alert("Invalid JSON: Data not an array."); return;
-                        }
+                        if (!Array.isArray(importedData)) { alert("Invalid JSON: Not an array."); return; }
                         await db.transaction('rw', db.collection, async () => {
-                            await db.collection.clear();
+                            await db.collection.clear(); 
                             const collectionToAdd = importedData.map((card, index) => {
                                 const { id, ...rest } = card; 
                                 return { ...rest, originalIndex: index };
@@ -1499,12 +1722,8 @@
                         if (editorCardSource === 'collection') clearEditorAndState();
                         await loadCollectionCards();
                         alert(`Collection imported from "${file.name}", overwriting previous.`);
-                    } catch (err) {
-                        console.error("Err import collection:", err);
-                        alert("Invalid JSON or import error.");
-                    } finally {
-                        collectionFileInput.value = '';
-                    }
+                    } catch (err) { console.error("Err import collection:", err); alert("Invalid JSON or import error."); } 
+                    finally { collectionFileInput.value = ''; }
                 };
                 reader.readAsText(file);
             };
@@ -1513,37 +1732,29 @@
     }
 
     window.exportCollectionJSON = async function() {
+         if (currentEditorMode === 'storyEditor') {
+             alert("Collection management is for 'Card Editor' mode."); return;
+        }
         try {
-            const allCollectionCardsRaw = await db.collection.orderBy('originalIndex').toArray();
-            if (allCollectionCardsRaw.length === 0) {
-                alert("Collection is empty."); return;
-            }
-
-            const cardsToExport = allCollectionCardsRaw.map(card => {
-                 const { id, originalIndex, ...rest } = card; 
-                 return rest;                                 
+            const allCollCardsRaw = await db.collection.orderBy('originalIndex').toArray();
+            if (allCollCardsRaw.length === 0) { alert("Collection is empty."); return; }
+            const cardsToExport = allCollCardsRaw.map(card => {
+                 const { id, originalIndex, ...rest } = card; return rest;                                 
             });
-
-            const sortBy = collectionCardSort.value; 
+            const sortByVal = collectionCardSort.value; 
             const sortedCardsToExport = [...cardsToExport];
-            if (sortBy === 'title') sortedCardsToExport.sort((a,b) => (a.title||"").localeCompare(b.title||""));
-            else if (sortBy === 'type') sortedCardsToExport.sort((a,b) => (a.type||"").localeCompare(b.type||""));
-            else if (sortBy === 'length') sortedCardsToExport.sort((a,b) => (b.value||"").length - (a.value||"").length);
+            if (sortByVal === 'title') sortedCardsToExport.sort((a,b) => (a.title||"").localeCompare(b.title||""));
+            else if (sortByVal === 'type') sortedCardsToExport.sort((a,b) => (a.type||"").localeCompare(b.type||""));
+            else if (sortByVal === 'length') sortedCardsToExport.sort((a,b) => (b.value||"").length - (a.value||"").length);
             
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sortedCardsToExport, null, 2));
             const dlAnchor = document.createElement('a');
             dlAnchor.setAttribute("href", dataStr);
             dlAnchor.setAttribute("download", "story_card_collection.json");
-            dlAnchor.click();
-            alert("Collection exported.");
-        } catch (err) {
-            console.error("Err export collection:", err);
-            alert("Failed to export collection.");
-        }
+            dlAnchor.click(); alert("Collection exported.");
+        } catch (err) { console.error("Err export collection:", err); alert("Failed to export collection."); }
     }
 
-
-    // --- Settings Functions ---
     document.getElementById('settingsBtn').onclick = () => toggleSettings(true);
     document.getElementById('settingsOverlay').addEventListener('click', (e) => {
         if (e.target.id === 'settingsOverlay') toggleSettings(false);
@@ -1557,6 +1768,7 @@
         const editorFont = document.getElementById('editorFont').value + 'px';
         const charFont = document.getElementById('charFont').value + 'px';
         const typeFont = document.getElementById('typeFont').value + 'px';
+        const jsonTreeFont = document.getElementById('jsonTreeFont').value + 'px'; 
         const showChars = document.getElementById('settingShowChars').checked;
         const showType = document.getElementById('settingShowType').checked;
         const tapToClose = document.getElementById('settingTapToClose').checked;
@@ -1565,18 +1777,22 @@
         document.documentElement.style.setProperty('--editor-font-size', editorFont);
         document.documentElement.style.setProperty('--char-font-size', charFont);
         document.documentElement.style.setProperty('--type-font-size', typeFont);
+        document.documentElement.style.setProperty('--json-tree-font-size', jsonTreeFont); 
 
         localStorage.setItem('sidebarFontSize', sidebarFont);
         localStorage.setItem('editorFontSize', editorFont);
         localStorage.setItem('charFontSize', charFont);
         localStorage.setItem('typeFontSize', typeFont);
+        localStorage.setItem('jsonTreeFontSize', jsonTreeFont); 
         localStorage.setItem('showChars', String(showChars));
         localStorage.setItem('showType', String(showType));
         localStorage.setItem('tapToCloseSidebar', String(tapToClose));
 
         toggleSettings(false);
         window.loadSettings(); 
-        if (sidebar.style.display === 'flex') renderSidebar();
+        if (sidebar.style.display === 'flex' && (currentEditorMode === 'cardEditor' || (currentEditorMode==='storyEditor' && currentStoryView === 'cards') )) {
+             renderSidebar();
+        }
         if (collectionSidebar.style.display === 'flex') renderCollectionSidebar();
     }
 
@@ -1585,19 +1801,22 @@
         const editorFont = localStorage.getItem('editorFontSize') || '14px';
         const charFont = localStorage.getItem('charFontSize') || '14px';
         const typeFont = localStorage.getItem('typeFontSize') || '14px';
-        const showChars = localStorage.getItem('showChars') !== 'false';
-        const showType = localStorage.getItem('showType') !== 'false';
-        const tapToClose = localStorage.getItem('tapToCloseSidebar') === 'true';
+        const jsonTreeFont = localStorage.getItem('jsonTreeFontSize') || '12px'; 
+        const showChars = localStorage.getItem('showChars') !== 'false'; 
+        const showType = localStorage.getItem('showType') !== 'false';   
+        const tapToClose = localStorage.getItem('tapToCloseSidebar') === 'true'; 
 
         document.documentElement.style.setProperty('--sidebar-font-size', sidebarFont);
         document.documentElement.style.setProperty('--editor-font-size', editorFont);
         document.documentElement.style.setProperty('--char-font-size', charFont);
         document.documentElement.style.setProperty('--type-font-size', typeFont);
+        document.documentElement.style.setProperty('--json-tree-font-size', jsonTreeFont); 
 
         document.getElementById('sidebarFont').value = parseInt(sidebarFont);
         document.getElementById('editorFont').value = parseInt(editorFont);
         document.getElementById('charFont').value = parseInt(charFont);
         document.getElementById('typeFont').value = parseInt(typeFont);
+        document.getElementById('jsonTreeFont').value = parseInt(jsonTreeFont); 
         document.getElementById('settingShowChars').checked = showChars;
         document.getElementById('settingShowType').checked = showType;
         document.getElementById('settingTapToClose').checked = tapToClose;
@@ -1608,48 +1827,37 @@
         if(collectionCharsHeader) collectionCharsHeader.style.display = showChars ? 'inline-block' : 'none';
     }
 
-    // --- Event Listeners for Main Sidebar & Initial Load ---
-    // Tap outside to close sidebars (original logic)
     document.getElementById('main').addEventListener('click', (e) => {
         const tapToCloseEnabled = document.getElementById('settingTapToClose').checked;
-        if (tapToCloseEnabled) {
+        if (tapToCloseEnabled && window.innerWidth <= 768) { 
             let updatedLayout = false;
             if (sidebar.style.display === 'flex' && !sidebar.contains(e.target) && e.target.id !== 'cardListToggle' && !e.target.closest('#header')) {
-                sidebar.style.display = 'none';
-                updatedLayout = true;
+                sidebar.style.display = 'none'; updatedLayout = true;
             }
             if (collectionSidebar.style.display === 'flex' && !collectionSidebar.contains(e.target) && e.target.id !== 'collectionToggleBtn' && !e.target.closest('#header')) {
-                collectionSidebar.style.display = 'none';
-                updatedLayout = true;
+                collectionSidebar.style.display = 'none'; updatedLayout = true;
             }
-            if (updatedLayout) {
-                updateMobileLayout();
-            }
+            if (updatedLayout) updateMobileLayout();
         }
     });
     
     cardFilter.addEventListener('input', renderSidebar);
     cardSort.addEventListener('change', renderSidebar);
 
-    // Add event listeners for resize and initial load for mobile layout
     window.addEventListener('resize', updateMobileLayout);
     window.addEventListener('load', () => {
-        updateMobileLayout(); // Ensure layout is correct on load
+        updateMobileLayout(); 
     });
 
-
-    // --- Initial Application Load ---
-    window.loadSettings(); // Load and apply settings first
-    renderSidebar();       // Initial render for workspace (likely empty)
-    clearEditorAndState(); // Ensure editor is clear and state is reset on load
-    // updateMobileLayout(); // Called by window.load event listener now
-    // No automatic loading of collection here; it loads when its toggle is clicked.
-    // This keeps initial load faster if collection is large.
+    window.loadSettings(); 
+    clearEditorAndState(); 
+    updateUIForCardEditorMode(); 
+    renderSidebar(); 
     
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log('Service Worker registered:', reg))
-          .catch(err => console.error('Service Worker registration failed:', err));
+          .then(reg => console.log('SW registered:', reg))
+          .catch(err => console.error('SW reg failed:', err));
       }
   </script>
 </body>
